@@ -55,17 +55,24 @@ export function Numpad({ value, onChange, onNext, maxDigits = 4 }: NumpadProps) 
   })
 
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {KEYS.map((key) => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => press(key)}
-          className="h-16 w-16 rounded-lg border border-muted text-2xl font-mono text-ink active:bg-signal/10"
-        >
-          {key}
-        </button>
-      ))}
+    <div className="mx-auto grid w-fit grid-cols-3 gap-3">
+      {KEYS.map((key) => {
+        const isControl = key === '⌫' || key === '→'
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => press(key)}
+            className={`flex h-17 w-17 items-center justify-center rounded-xl border text-2xl transition-colors active:bg-signal/10 ${
+              isControl
+                ? 'border-line font-sans text-muted'
+                : 'border-line font-mono font-medium text-ink'
+            }`}
+          >
+            {key}
+          </button>
+        )
+      })}
     </div>
   )
 }

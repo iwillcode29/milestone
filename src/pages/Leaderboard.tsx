@@ -21,16 +21,24 @@ export function Leaderboard() {
   return (
     <div>
       <Header title="อันดับ" />
-      <ol>
-        {ranked.map((r, i) => (
-          <li key={r.bib} role="listitem" className="flex items-center gap-3 border-b border-muted px-4 py-3">
-            <span className="w-8 font-mono text-lg">{i + 1}</span>
-            <span className="font-mono">{r.bib}</span>
-            <span className="flex-1 px-2">{nameByBib.get(r.bib) ?? r.name}</span>
-            <span className="font-mono text-lg">{Math.round(r.total * 10) / 10}</span>
-          </li>
-        ))}
-      </ol>
+      <div className="mx-auto max-w-2xl">
+        {ranked.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-muted">ยังไม่มีทีมบันทึกผล — อันดับจะขึ้นเมื่อกรอกผลทีมแรก</p>
+        ) : (
+          <ol>
+            {ranked.map((r, i) => (
+              <li key={r.bib} role="listitem" className="flex items-center gap-4 border-b border-line px-4 py-3.5">
+                <span className={`w-6 font-mono text-lg ${i === 0 ? 'font-semibold text-signal' : 'text-muted'}`}>
+                  {i + 1}
+                </span>
+                <span className="font-mono text-base text-ink">{r.bib}</span>
+                <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
+                <span className="font-mono text-lg text-ink">{Math.round(r.total * 10) / 10}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   )
 }

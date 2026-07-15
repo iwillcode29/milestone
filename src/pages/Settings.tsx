@@ -17,6 +17,10 @@ const FIELDS: { key: keyof Config; label: string }[] = [
   { key: 'gps_tolerance_pct', label: 'gps_tolerance_pct' },
 ]
 
+function SectionLabel({ children }: { children: string }) {
+  return <p className="mb-3 text-xs tracking-[0.08em] text-muted uppercase">{children}</p>
+}
+
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
@@ -49,29 +53,31 @@ export function Settings() {
   return (
     <div>
       <Header title="ตั้งค่า" />
+      <div className="mx-auto max-w-2xl px-4 py-6">
+        {config && (
+          <section>
+            <SectionLabel>เป้าหมาย &amp; น้ำหนักคะแนน</SectionLabel>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {FIELDS.map(({ key, label }) => (
+                <label key={key} className="flex flex-col gap-1">
+                  <span className="font-mono text-xs text-muted">{label}</span>
+                  <input
+                    aria-label={label}
+                    name={key}
+                    type="number"
+                    step="any"
+                    value={config[key]}
+                    onChange={(e) => updateField(key, e.target.valueAsNumber)}
+                    className="border-b border-line py-1.5 font-mono text-ink focus:border-ink focus:outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {config && (
-        <div className="grid grid-cols-2 gap-3 p-4">
-          {FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex flex-col gap-1 text-sm text-muted">
-              {label}
-              <input
-                aria-label={label}
-                name={key}
-                type="number"
-                step="any"
-                value={config[key]}
-                onChange={(e) => updateField(key, e.target.valueAsNumber)}
-                className="rounded-md border border-muted px-2 py-2 font-mono text-ink"
-              />
-            </label>
-          ))}
-        </div>
-      )}
-
-      <div className="border-t border-muted p-4">
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          นำเข้าทีมจาก CSV
+        <section className="mt-8 border-t border-line pt-6">
+          <SectionLabel>นำเข้าทีมจาก CSV</SectionLabel>
           <input
             aria-label="นำเข้าทีมจาก CSV"
             name="teams_csv"
@@ -81,31 +87,33 @@ export function Settings() {
               const file = e.target.files?.[0]
               if (file) handleCsvUpload(file)
             }}
+            className="text-sm text-ink file:mr-3 file:border file:border-line file:bg-paper file:px-3 file:py-1.5 file:text-sm file:text-ink"
           />
-        </label>
-        {importMessage && <p className="mt-2 text-ok">{importMessage}</p>}
-      </div>
+          {importMessage && <p className="mt-2 text-sm text-ok">{importMessage}</p>}
+        </section>
 
-      <div className="border-t border-muted p-4">
-        <label className="flex flex-col gap-1 text-sm text-warn">
-          {`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}
-          <input
-            aria-label={`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}
-            name="wipe_confirm"
-            type="text"
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            className="rounded-md border border-warn px-2 py-2 font-mono text-ink"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={handleWipe}
-          disabled={confirmText !== CONFIRM_WORD}
-          className="mt-2 rounded-md bg-warn px-4 py-2 text-white disabled:opacity-40"
-        >
-          ล้างข้อมูล
-        </button>
+        <section className="mt-8 border-t border-line pt-6">
+          <SectionLabel>ล้างข้อมูล</SectionLabel>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-warn">{`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}</span>
+            <input
+              aria-label={`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}
+              name="wipe_confirm"
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="border-b border-warn/40 py-1.5 font-mono text-ink focus:border-warn focus:outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleWipe}
+            disabled={confirmText !== CONFIRM_WORD}
+            className="mt-3 bg-warn px-4 py-2 text-sm text-white transition-opacity disabled:opacity-30"
+          >
+            ล้างข้อมูล
+          </button>
+        </section>
       </div>
     </div>
   )

@@ -160,83 +160,98 @@ export function BibEntry() {
     <div>
       <Header title={`${bib} ${team?.name ?? ''}`} />
 
-      <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2 text-sm text-muted">
-        <span />
-        <span className="text-center">ระยะ (กม.)</span>
-        <span className="text-center">เพซ</span>
-      </div>
+      <div className="mx-auto max-w-2xl">
+        <div className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 pt-4 text-xs tracking-[0.08em] text-muted uppercase">
+          <span />
+          <span className="text-center">ระยะ (กม.)</span>
+          <span className="text-center">เพซ</span>
+        </div>
 
-      {config &&
-        segments(config).map((seg) => (
-          <div key={seg.key} className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2">
-            <span className="text-muted">{seg.label}</span>
+        {config &&
+          segments(config).map((seg) => (
+            <div key={seg.key} className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
+              <span className="text-sm text-muted">{seg.label}</span>
+              <button
+                type="button"
+                data-testid={`field-${seg.dKey}`}
+                onClick={() => setActive(seg.dKey)}
+                className={`rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
+                  active === seg.dKey ? 'border-2 border-signal' : 'border-line'
+                }`}
+              >
+                {digits[seg.dKey] ? formatDistance(digits[seg.dKey]) : <span className="text-muted">—</span>}
+              </button>
+              <div>
+                <button
+                  type="button"
+                  data-testid={`field-${seg.key}`}
+                  onClick={() => setActive(seg.key)}
+                  className={`w-full rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
+                    active === seg.key ? 'border-2 border-signal' : 'border-line'
+                  }`}
+                >
+                  {formatDigits(digits[seg.key])}
+                </button>
+                <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatDigits(secToDigits(seg.target))}</p>
+              </div>
+            </div>
+          ))}
+
+        <div className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
+          <span className="text-sm text-muted">Activity</span>
+          <div />
+          <div>
             <button
               type="button"
-              data-testid={`field-${seg.dKey}`}
-              onClick={() => setActive(seg.dKey)}
-              className={`rounded-md border px-2 py-3 text-center font-mono text-xl ${
-                active === seg.dKey ? 'border-2 border-signal' : 'border-muted'
+              data-testid="field-act"
+              onClick={() => setActive('act')}
+              className={`w-full rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
+                active === 'act' ? 'border-2 border-signal' : 'border-line'
               }`}
             >
-              {digits[seg.dKey] ? formatDistance(digits[seg.dKey]) : '—'}
+              {formatDigits(digits.act)}
             </button>
-            <button
-              type="button"
-              data-testid={`field-${seg.key}`}
-              onClick={() => setActive(seg.key)}
-              className={`rounded-md border px-2 py-3 text-center font-mono text-xl ${
-                active === seg.key ? 'border-2 border-signal' : 'border-muted'
-              }`}
-            >
-              {formatDigits(digits[seg.key])}
-            </button>
+            {config && (
+              <p className="mt-1 text-center font-mono text-xs text-muted">
+                เป้า {formatDigits(secToDigits(config.target_act_sec))}
+              </p>
+            )}
           </div>
-        ))}
+        </div>
 
-      <div className="flex items-center justify-between px-4 py-2">
-        <span className="text-muted">Activity Time</span>
-        <button
-          type="button"
-          data-testid="field-act"
-          onClick={() => setActive('act')}
-          className={`rounded-md border px-2 py-3 text-center font-mono text-xl ${
-            active === 'act' ? 'border-2 border-signal' : 'border-muted'
-          }`}
-        >
-          {formatDigits(digits.act)}
-        </button>
-      </div>
+        {error && (
+          <p className="mx-4 mt-3 border-l-4 border-warn bg-warn/[0.06] px-3 py-2 text-sm text-warn">{error}</p>
+        )}
 
-      {error && <p className="px-4 py-2 text-warn">{error}</p>}
+        <div className="px-4 pt-6 pb-4">
+          <Numpad
+            value={digits[active]}
+            onChange={setActiveDigits}
+            onNext={advanceField}
+            maxDigits={DISTANCE_FIELDS.has(active) ? 3 : 4}
+          />
+        </div>
 
-      <div className="p-4">
-        <Numpad
-          value={digits[active]}
-          onChange={setActiveDigits}
-          onNext={advanceField}
-          maxDigits={DISTANCE_FIELDS.has(active) ? 3 : 4}
-        />
-      </div>
-
-      <div className="p-4">
-        <button
-          type="button"
-          onClick={handleReview}
-          className="w-full rounded-md bg-signal py-4 text-lg text-white"
-        >
-          ตรวจทาน
-        </button>
+        <div className="px-4 pb-6">
+          <button
+            type="button"
+            onClick={handleReview}
+            className="w-full rounded-lg bg-signal py-4 text-lg font-medium text-white transition-opacity active:opacity-80"
+          >
+            ตรวจทาน
+          </button>
+        </div>
       </div>
 
       {warning && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-paper p-4">
-            <p className="mb-4 text-ink">{warning}</p>
+        <div className="fixed inset-0 flex items-center justify-center bg-ink/40 p-4">
+          <div className="w-full max-w-sm border border-line bg-paper p-5">
+            <p className="mb-5 text-ink">{warning}</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setWarning(null)}
-                className="flex-1 rounded-md border border-ink py-3"
+                className="flex-1 border border-line py-3 text-ink transition-colors hover:border-ink"
               >
                 แก้ไข
               </button>
@@ -246,7 +261,7 @@ export function BibEntry() {
                   setWarning(null)
                   setStep('confirm')
                 }}
-                className="flex-1 rounded-md bg-signal py-3 text-white"
+                className="flex-1 bg-signal py-3 font-medium text-white"
               >
                 ยืนยัน
               </button>

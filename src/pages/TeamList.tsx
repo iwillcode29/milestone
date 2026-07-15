@@ -17,9 +17,14 @@ function normalizeBib(bib: string): string {
   return String(Number(bib))
 }
 
-function statusOf(bib: string, results: Record<string, Result>, flagged: Set<string>): string {
-  if (flagged.has(bib)) return '⚠️'
-  return results[bib] ? 'บันทึกแล้ว' : 'รอ'
+function StatusChip({ bib, results, flagged }: { bib: string; results: Record<string, Result>; flagged: Set<string> }) {
+  if (flagged.has(bib)) {
+    return <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-medium text-warn">⚠️</span>
+  }
+  if (results[bib]) {
+    return <span className="rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok">บันทึกแล้ว</span>
+  }
+  return <span className="px-2.5 py-1 text-xs text-muted">รอ</span>
 }
 
 export function TeamList() {
@@ -54,30 +59,31 @@ export function TeamList() {
   return (
     <div>
       <Header title="รายชื่อทีม" />
-      <input
-        role="searchbox"
-        name="bib_search"
-        type="text"
-        inputMode="numeric"
-        placeholder="ค้นหา bib"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="m-4 w-[calc(100%-2rem)] rounded-md border border-muted px-3 py-2 font-mono text-lg"
-      />
-      <ul>
-        {visibleTeams.map((team) => (
-          <li key={team.bib}>
-            <Link
-              to={`/bib/${team.bib}`}
-              className="flex items-center justify-between border-b border-muted px-4 py-3"
-            >
-              <span className="font-mono text-lg">{team.bib}</span>
-              <span className="flex-1 px-3 text-left">{team.name}</span>
-              <span>{statusOf(team.bib, results, flagged)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="mx-auto max-w-2xl">
+        <div className="px-4 pt-4 pb-2">
+          <input
+            role="searchbox"
+            name="bib_search"
+            type="text"
+            inputMode="numeric"
+            placeholder="ค้นหา bib"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full border-b border-line pb-2 font-mono text-lg text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+          />
+        </div>
+        <ul>
+          {visibleTeams.map((team) => (
+            <li key={team.bib} className="border-b border-line">
+              <Link to={`/bib/${team.bib}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-ink/[0.02]">
+                <span className="font-mono text-base text-ink">{team.bib}</span>
+                <span className="flex-1 truncate text-base text-ink">{team.name}</span>
+                <StatusChip bib={team.bib} results={results} flagged={flagged} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
       {teams?.length === 0 && <TeamCountSetup onSubmit={handleSetupSubmit} />}
     </div>
   )
