@@ -67,7 +67,7 @@ describe('Settings', () => {
     renderSettings()
     await screen.findByLabelText('weight_act')
 
-    const wipeButton = screen.getByRole('button', { name: 'ล้างข้อมูล' })
+    const wipeButton = screen.getByRole('button', { name: '🗑️ ล้างข้อมูล' })
     expect(wipeButton).toBeDisabled()
 
     await user.type(screen.getByLabelText('พิมพ์ "ลบทั้งหมด" เพื่อยืนยัน'), 'ลบทั้งหมด')

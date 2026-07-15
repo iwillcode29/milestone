@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Fragment, useEffect, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ConfirmScreen } from '../components/ConfirmScreen'
 import { Header } from '../components/Header'
 import { maybeAutoBackup } from '../lib/backup'
@@ -15,7 +15,7 @@ import {
   isPaceOutOfRange,
 } from '../lib/validate'
 
-type FieldsState = {
+export type FieldsState = {
   d1: string
   p1: string
   d2: string
@@ -31,15 +31,16 @@ type Segment = { paceKey: 'p1' | 'p2' | 'p3'; distKey: 'd1' | 'd2' | 'd3'; label
 
 function segments(config: Config): Segment[] {
   return [
-    { paceKey: 'p1', distKey: 'd1', label: '① Road', target: config.target_p1_sec },
-    { paceKey: 'p2', distKey: 'd2', label: '② Trail', target: config.target_p2_sec },
-    { paceKey: 'p3', distKey: 'd3', label: '③ Hilly', target: config.target_p3_sec },
+    { paceKey: 'p1', distKey: 'd1', label: '① 🛣️ Road', target: config.target_p1_sec },
+    { paceKey: 'p2', distKey: 'd2', label: '② 🌲 Trail', target: config.target_p2_sec },
+    { paceKey: 'p3', distKey: 'd3', label: '③ ⛰️ Hilly', target: config.target_p3_sec },
   ]
 }
 
 export function BibEntry() {
   const { bib = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [team, setTeam] = useState<Team | null>(null)
   const [config, setConfig] = useState<Config | null>(null)
   const [recordedAt, setRecordedAt] = useState<number | null>(null)
@@ -59,17 +60,21 @@ export function BibEntry() {
     getConfig().then(setConfig)
     getResults().then((results) => {
       const r = results[bib]
-      if (!r) return
-      setRecordedAt(r.recorded_at)
-      setFields({
-        d1: r.d1_km != null ? String(r.d1_km) : '',
-        p1: formatSeconds(r.p1_sec),
-        d2: r.d2_km != null ? String(r.d2_km) : '',
-        p2: formatSeconds(r.p2_sec),
-        d3: r.d3_km != null ? String(r.d3_km) : '',
-        p3: formatSeconds(r.p3_sec),
-        act: formatSeconds(r.act_sec),
-      })
+      if (r) {
+        setRecordedAt(r.recorded_at)
+        setFields({
+          d1: r.d1_km != null ? String(r.d1_km) : '',
+          p1: formatSeconds(r.p1_sec),
+          d2: r.d2_km != null ? String(r.d2_km) : '',
+          p2: formatSeconds(r.p2_sec),
+          d3: r.d3_km != null ? String(r.d3_km) : '',
+          p3: formatSeconds(r.p3_sec),
+          act: formatSeconds(r.act_sec),
+        })
+        return
+      }
+      const prefill = (location.state as { prefill?: Partial<FieldsState> } | null)?.prefill
+      if (prefill) setFields((prev) => ({ ...prev, ...prefill }))
     })
   }, [bib])
 
@@ -186,17 +191,15 @@ export function BibEntry() {
       <Header title={`${bib} ${team?.name ?? ''}`} />
 
       <div className="mx-auto max-w-2xl">
-        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 pt-4 text-xs tracking-[0.08em] text-muted uppercase">
+        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-2 px-4 pt-4">
           <span />
-          <span className="min-w-0 text-center">ระยะ (กม.)</span>
-          <span className="min-w-0 text-center">เพซ</span>
-        </div>
+          <span className="min-w-0 text-center text-xs tracking-[0.08em] text-muted uppercase">ระยะ (กม.)</span>
+          <span className="min-w-0 text-center text-xs tracking-[0.08em] text-muted uppercase">เพซ</span>
 
-        {config &&
-          segments(config).map((seg) => (
-            <div key={seg.paceKey} className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2">
-              <span className="text-sm whitespace-nowrap text-muted">{seg.label}</span>
-              <div className="min-w-0">
+          {config &&
+            segments(config).map((seg) => (
+              <Fragment key={seg.paceKey}>
+                <span className="text-sm whitespace-nowrap text-muted">{seg.label}</span>
                 <input
                   aria-label={`ระยะ ${seg.label}`}
                   type="number"
@@ -206,29 +209,27 @@ export function BibEntry() {
                   value={fields[seg.distKey]}
                   onChange={(e) => setField(seg.distKey, e.target.value)}
                   onFocus={() => setFocusedField(seg.distKey)}
-                  className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+                  className="w-full min-w-0 self-start rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
                 />
-              </div>
-              <div className="min-w-0">
-                <input
-                  aria-label={`เพซ ${seg.label}`}
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="mm:ss"
-                  value={fields[seg.paceKey]}
-                  onChange={(e) => setField(seg.paceKey, maskMmSs(e.target.value))}
-                  onFocus={() => setFocusedField(seg.paceKey)}
-                  className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
-                />
-                <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(seg.target)}</p>
-              </div>
-            </div>
-          ))}
+                <div className="min-w-0 self-start">
+                  <input
+                    aria-label={`เพซ ${seg.label}`}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="mm:ss"
+                    value={fields[seg.paceKey]}
+                    onChange={(e) => setField(seg.paceKey, maskMmSs(e.target.value))}
+                    onFocus={() => setFocusedField(seg.paceKey)}
+                    className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+                  />
+                  <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(seg.target)}</p>
+                </div>
+              </Fragment>
+            ))}
 
-        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2">
-          <span className="text-sm whitespace-nowrap text-muted">Activity</span>
+          <span className="text-sm whitespace-nowrap text-muted">⏱️ Activity</span>
           <div />
-          <div className="min-w-0">
+          <div className="min-w-0 self-start">
             <input
               aria-label="Activity Time"
               type="text"
@@ -247,7 +248,7 @@ export function BibEntry() {
 
         <div className="mx-4 mt-4 border border-line p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-ink">อ่านจากรูป</span>
+            <span className="text-sm text-ink">✨ อ่านจากรูป</span>
             <label className="cursor-pointer text-sm text-signal transition-opacity hover:opacity-70">
               📷 เลือกรูป
               <input
@@ -270,20 +271,48 @@ export function BibEntry() {
           )}
 
           {readings && readings.length > 0 && (
-            <div className="mt-3">
-              <p className="mb-2 text-xs text-muted">แตะช่องที่จะกรอก แล้วกดค่าด้านล่างเพื่อใส่</p>
-              <div className="flex flex-wrap gap-2">
-                {readings.map((r, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => applyReading(r)}
-                    className="rounded-full border border-line px-3 py-1.5 font-mono text-sm text-ink transition-colors hover:border-signal"
-                  >
-                    {r.type === 'time' ? formatSeconds(r.seconds) : `${r.km} km`}
-                  </button>
-                ))}
-              </div>
+            <div className="mt-3 space-y-3">
+              <p className="text-xs text-muted">แตะช่องที่จะกรอก แล้วกดค่าด้านล่างเพื่อใส่</p>
+
+              {readings.filter((r) => r.type === 'time').length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs text-muted">⏱️ เวลา</p>
+                  <div className="flex flex-wrap gap-2">
+                    {readings
+                      .filter((r): r is Extract<Reading, { type: 'time' }> => r.type === 'time')
+                      .map((r, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => applyReading(r)}
+                          className="rounded-full border border-line px-3 py-1.5 font-mono text-sm text-ink transition-colors hover:border-signal"
+                        >
+                          {formatSeconds(r.seconds)}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {readings.filter((r) => r.type === 'distance').length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-xs text-muted">📏 ระยะ</p>
+                  <div className="flex flex-wrap gap-2">
+                    {readings
+                      .filter((r): r is Extract<Reading, { type: 'distance' }> => r.type === 'distance')
+                      .map((r, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => applyReading(r)}
+                          className="rounded-full border border-line px-3 py-1.5 font-mono text-sm text-ink transition-colors hover:border-signal"
+                        >
+                          {r.km} km
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -298,7 +327,7 @@ export function BibEntry() {
             onClick={handleReview}
             className="w-full rounded-lg bg-signal py-4 text-lg font-medium text-white transition-opacity active:opacity-80"
           >
-            ตรวจทาน
+            🔍 ตรวจทาน
           </button>
         </div>
       </div>
@@ -313,7 +342,7 @@ export function BibEntry() {
                 onClick={() => setWarning(null)}
                 className="flex-1 border border-line py-3 text-ink transition-colors hover:border-ink"
               >
-                แก้ไข
+                ✏️ แก้ไข
               </button>
               <button
                 type="button"
@@ -323,7 +352,7 @@ export function BibEntry() {
                 }}
                 className="flex-1 bg-signal py-3 font-medium text-white"
               >
-                ยืนยัน
+                ✅ ยืนยัน
               </button>
             </div>
           </div>

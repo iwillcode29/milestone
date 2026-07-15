@@ -47,7 +47,7 @@ describe('ConfirmScreen', () => {
     const user = userEvent.setup()
     render(<ConfirmScreen scored={scored} config={config} onEdit={onEdit} onSave={vi.fn()} saving={false} />)
 
-    await user.click(screen.getByRole('button', { name: 'แก้ไข' }))
+    await user.click(screen.getByRole('button', { name: '✏️ แก้ไข' }))
     expect(onEdit).toHaveBeenCalledOnce()
   })
 
@@ -58,10 +58,10 @@ describe('ConfirmScreen', () => {
       <ConfirmScreen scored={scored} config={config} onEdit={vi.fn()} onSave={onSave} saving={false} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'บันทึก' }))
+    await user.click(screen.getByRole('button', { name: '💾 บันทึก' }))
     expect(onSave).toHaveBeenCalledOnce()
 
     rerender(<ConfirmScreen scored={scored} config={config} onEdit={vi.fn()} onSave={onSave} saving={true} />)
-    expect(screen.getByRole('button', { name: 'บันทึก' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '💾 บันทึก' })).toBeDisabled()
   })
 })

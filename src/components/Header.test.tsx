@@ -57,9 +57,9 @@ describe('Header', () => {
 
   it('links to the team list, leaderboard, and settings', () => {
     renderHeader()
-    expect(screen.getByRole('link', { name: 'รายชื่อทีม' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: 'อันดับ' })).toHaveAttribute('href', '/leaderboard')
-    expect(screen.getByRole('link', { name: 'ตั้งค่า' })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('link', { name: '📋 รายชื่อทีม' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: '🏆 อันดับ' })).toHaveAttribute('href', '/leaderboard')
+    expect(screen.getByRole('link', { name: '⚙️ ตั้งค่า' })).toHaveAttribute('href', '/settings')
   })
 
   it('exports a CSV built from the current store state when clicked', async () => {

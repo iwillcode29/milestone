@@ -6,9 +6,9 @@ import { triggerDownload } from '../lib/download'
 import { getConfig, getResults, getTeams } from '../lib/store'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'รายชื่อทีม', end: true },
-  { to: '/leaderboard', label: 'อันดับ', end: false },
-  { to: '/settings', label: 'ตั้งค่า', end: false },
+  { to: '/', label: '📋 รายชื่อทีม', end: true },
+  { to: '/leaderboard', label: '🏆 อันดับ', end: false },
+  { to: '/settings', label: '⚙️ ตั้งค่า', end: false },
 ]
 
 export function Header({ title }: { title: string }) {
@@ -40,7 +40,7 @@ export function Header({ title }: { title: string }) {
             onClick={handleExport}
             className="shrink-0 font-mono text-xs tracking-[0.08em] text-muted uppercase transition-colors hover:text-ink"
           >
-            Export CSV
+            📤 Export CSV
           </button>
         </header>
         <nav className="flex gap-1 px-2">
@@ -62,7 +62,7 @@ export function Header({ title }: { title: string }) {
       </div>
       {unexported > EXPORT_WARN_THRESHOLD && (
         <div role="alert" className="border-l-4 border-warn bg-warn/[0.06] px-4 py-2 text-sm text-warn">
-          ยังไม่ได้สำรอง {unexported} รายการ
+          ⚠️ ยังไม่ได้สำรอง {unexported} รายการ
         </div>
       )}
     </div>

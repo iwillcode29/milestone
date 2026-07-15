@@ -10,7 +10,7 @@ describe('TeamCountSetup', () => {
     render(<TeamCountSetup onSubmit={onSubmit} />)
 
     await user.type(screen.getByLabelText('จำนวนทีม'), '25')
-    await user.click(screen.getByRole('button', { name: 'เริ่มใช้งาน' }))
+    await user.click(screen.getByRole('button', { name: '🚀 เริ่มใช้งาน' }))
 
     expect(onSubmit).toHaveBeenCalledWith(25)
   })
@@ -20,7 +20,7 @@ describe('TeamCountSetup', () => {
     const user = userEvent.setup()
     render(<TeamCountSetup onSubmit={onSubmit} />)
 
-    const button = screen.getByRole('button', { name: 'เริ่มใช้งาน' })
+    const button = screen.getByRole('button', { name: '🚀 เริ่มใช้งาน' })
     expect(button).toBeDisabled()
 
     await user.type(screen.getByLabelText('จำนวนทีม'), '0')

@@ -32,7 +32,7 @@ export function TeamCountSetup({ onSubmit }: TeamCountSetupProps) {
           onClick={() => onSubmit(count)}
           className="mt-5 w-full bg-signal py-3 text-lg font-medium text-white transition-opacity active:opacity-80 disabled:opacity-30"
         >
-          เริ่มใช้งาน
+          🚀 เริ่มใช้งาน
         </button>
       </div>
     </div>

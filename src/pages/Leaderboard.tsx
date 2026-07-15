@@ -4,6 +4,8 @@ import { rank, scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams } from '../lib/store'
 import type { Config, Result, Team } from '../lib/types'
 
+const MEDALS = ['🥇', '🥈', '🥉']
+
 export function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>([])
   const [results, setResults] = useState<Record<string, Result>>({})
@@ -29,7 +31,7 @@ export function Leaderboard() {
             {ranked.map((r, i) => (
               <li key={r.bib} role="listitem" className="flex items-center gap-4 border-b border-line px-4 py-3.5">
                 <span className={`w-6 font-mono text-lg ${i === 0 ? 'font-semibold text-signal' : 'text-muted'}`}>
-                  {i + 1}
+                  {MEDALS[i] ?? i + 1}
                 </span>
                 <span className="font-mono text-base text-ink">{r.bib}</span>
                 <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>

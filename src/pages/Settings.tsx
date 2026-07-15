@@ -56,7 +56,7 @@ export function Settings() {
       <div className="mx-auto max-w-2xl px-4 py-6">
         {config && (
           <section>
-            <SectionLabel>เป้าหมาย &amp; น้ำหนักคะแนน</SectionLabel>
+            <SectionLabel>🎯 เป้าหมาย &amp; น้ำหนักคะแนน</SectionLabel>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               {FIELDS.map(({ key, label }) => (
                 <label key={key} className="flex flex-col gap-1">
@@ -77,7 +77,7 @@ export function Settings() {
         )}
 
         <section className="mt-8 border-t border-line pt-6">
-          <SectionLabel>นำเข้าทีมจาก CSV</SectionLabel>
+          <SectionLabel>📥 นำเข้าทีมจาก CSV</SectionLabel>
           <input
             aria-label="นำเข้าทีมจาก CSV"
             name="teams_csv"
@@ -89,11 +89,11 @@ export function Settings() {
             }}
             className="text-sm text-ink file:mr-3 file:border file:border-line file:bg-paper file:px-3 file:py-1.5 file:text-sm file:text-ink"
           />
-          {importMessage && <p className="mt-2 text-sm text-ok">{importMessage}</p>}
+          {importMessage && <p className="mt-2 text-sm text-ok">✅ {importMessage}</p>}
         </section>
 
         <section className="mt-8 border-t border-line pt-6">
-          <SectionLabel>ล้างข้อมูล</SectionLabel>
+          <SectionLabel>🗑️ ล้างข้อมูล</SectionLabel>
           <label className="flex flex-col gap-1">
             <span className="text-sm text-warn">{`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}</span>
             <input
@@ -111,7 +111,7 @@ export function Settings() {
             disabled={confirmText !== CONFIRM_WORD}
             className="mt-3 bg-warn px-4 py-2 text-sm text-white transition-opacity disabled:opacity-30"
           >
-            ล้างข้อมูล
+            🗑️ ล้างข้อมูล
           </button>
         </section>
       </div>

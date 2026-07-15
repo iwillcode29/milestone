@@ -45,7 +45,7 @@ describe('TeamList', () => {
     mockStore({})
     renderTeamList()
 
-    expect(await screen.findAllByText('รอ')).toHaveLength(3)
+    expect(await screen.findAllByText('⏳ รอ')).toHaveLength(3)
   })
 
   it('shows a recorded chip for teams with a saved result', async () => {
@@ -62,15 +62,15 @@ describe('TeamList', () => {
     })
     renderTeamList()
 
-    await waitFor(() => expect(screen.getByText('บันทึกแล้ว')).toBeInTheDocument())
-    expect(screen.getAllByText('รอ')).toHaveLength(2)
+    await waitFor(() => expect(screen.getByText('✅ บันทึกแล้ว')).toBeInTheDocument())
+    expect(screen.getAllByText('⏳ รอ')).toHaveLength(2)
   })
 
   it('matches bib search by leading digits, ignoring zero-padding', async () => {
     mockStore({})
     const user = userEvent.setup()
     renderTeamList()
-    await screen.findAllByText('รอ')
+    await screen.findAllByText('⏳ รอ')
 
     await user.type(screen.getByRole('searchbox'), '1')
 

@@ -30,7 +30,7 @@ The spec document is the historical record of the *initial* design; the followin
 - **Team count is dynamic, not hardcoded to ~25.** On first launch (empty team list), `TeamCountSetup` prompts for a team count and seeds zero-padded bibs `001..N` from it.
 - **Teams can be deleted individually** from `/` (tap "ลบ" then "ยืนยันลบ" to confirm) — `deleteTeam(bib)` in `src/lib/store.ts` also removes any recorded result for that bib.
 - **OCR/photo assist is back, deliberately, as an opt-in assist — not the rejected "read the whole screen automatically and trust it" idea.** See below.
-- The static-only, zero-server-calls constraint is now "zero server calls **except** the one optional photo-assist endpoint" — see next section. Everything else (scoring, storage, leaderboard, CSV export, backup) still works fully offline exactly as originally specified.
+- The static-only, zero-server-calls constraint is now "zero server calls **except** the optional photo-assist endpoints" — see next two sections. Everything else (scoring, storage, leaderboard, CSV export, backup) still works fully offline exactly as originally specified.
 
 ## AI photo assist (`api/extract.ts`)
 
@@ -40,6 +40,16 @@ One Vercel serverless function, added on top of the otherwise-static app:
 - **Never auto-fills.** By explicit user decision, extracted readings are shown as tappable chips on the entry screen (`src/pages/BibEntry.tsx`); staff must tap into the field they want to fill *first* (tracked via `focusedField`), then tap a chip to apply it there. This was a deliberate choice over auto-fill-then-review, because the watch's Lap Details screen has no reliable per-row labels the model can map to segments — letting staff assign values themselves avoids silent mis-mapping.
 - Requires `OPENAI_API_KEY` set as a Vercel environment variable (Production + Preview) — **never** hardcode it, put it in a committed file, or pass it through client code. `.env`, `.env.*`, and `.vercel` are gitignored.
 - This endpoint needs network connectivity to work. It's explicitly an optional assist: if there's no signal, staff types the mm:ss/km values manually exactly as before — the core entry → confirm → save flow has no dependency on this endpoint and still works fully offline.
+
+## Watch-photo import — the one place this app DOES auto-fill (`api/extract-batch.ts`)
+
+A second, separate serverless function backs a different entry point: the "✨ นำเข้าจากรูปวอทช์" button on the team list (`WatchPhotoImport` component, `src/lib/extractBatch.ts`). This is intentionally **not** the same UX as the per-bib photo assist above, and the two should not be merged:
+
+- Staff can select **multiple photos at once** (e.g. one shot of the watch's workout-summary screen, one of its Lap Details screen, ideally both with the paper race-bib card in frame). All images go to OpenAI in a single request.
+- The model is asked for structured output — `{ bib, activity_sec, laps: [{pace_sec, distance_km}] }` — not a flat list of readings. `laps` must preserve the Lap Details screen's top-to-bottom row order.
+- **This DOES auto-fill**, unlike `api/extract.ts`: `activity_sec` → Activity time, `laps[0..2]` → p1/d1, p2/d2, p3/d3 in order, and it navigates straight to `/bib/:bib` with those values pre-populated via router state (`navigate(path, { state: { prefill } })`, read back in `BibEntry`'s mount effect). This was a deliberate, explicit user decision made *after* — and in spite of — the "never auto-fill" reasoning above: unlike a single ambiguous screen photo, the Lap Details screen's rows are numbered by the watch itself, so segment order is unambiguous here in a way it isn't for the tap-to-assign flow.
+- Bib resolution: if the model reads a bib and it matches an existing team (`findTeamByBib` in `src/lib/bib.ts`, tolerant of zero-padding), navigation is automatic with no staff interaction. If the bib is missing or doesn't match a known team, `WatchPhotoImport` falls back to a small inline "type the bib" prompt (pre-filled with whatever the model guessed, if anything) before navigating.
+- The safety net is the same as ever: staff still land on the normal entry screen and must still tap "ตรวจทาน" → review deltas → "บันทึก" before anything is saved. Auto-fill only removes typing, never the review step.
 
 ## Data model
 
@@ -61,7 +71,7 @@ Pure module, still exactly as originally spec'd:
 
 | Route | Purpose |
 |---|---|
-| `/` | Team list — status chips (รอ/บันทึกแล้ว/⚠️), bib search (typing `1` matches `001`), per-team delete, first-launch team-count setup popup |
+| `/` | Team list — status chips (รอ/บันทึกแล้ว/⚠️), bib search (typing `1` matches `001`), per-team delete, watch-photo import button (see above), first-launch team-count setup popup |
 | `/bib/:bib` | Entry screen → confirm screen (`ConfirmScreen`) before save |
 | `/leaderboard` | Rankings, empty state when nothing recorded yet |
 | `/settings` | Edit targets/weights, import teams from CSV, wipe-data (requires typing a confirm phrase) |

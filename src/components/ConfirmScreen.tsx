@@ -31,10 +31,10 @@ type ConfirmScreenProps = {
 export function ConfirmScreen({ scored, config, onEdit, onSave, saving }: ConfirmScreenProps) {
   return (
     <div className="mx-auto max-w-2xl px-4 pt-2 pb-4">
-      <DeltaRow label="ช่วง 1" actual={scored.p1_sec} target={config.target_p1_sec} />
-      <DeltaRow label="ช่วง 2" actual={scored.p2_sec} target={config.target_p2_sec} />
-      <DeltaRow label="ช่วง 3" actual={scored.p3_sec} target={config.target_p3_sec} />
-      <DeltaRow label="Activity" actual={scored.act_sec} target={config.target_act_sec} />
+      <DeltaRow label="🛣️ ช่วง 1" actual={scored.p1_sec} target={config.target_p1_sec} />
+      <DeltaRow label="🌲 ช่วง 2" actual={scored.p2_sec} target={config.target_p2_sec} />
+      <DeltaRow label="⛰️ ช่วง 3" actual={scored.p3_sec} target={config.target_p3_sec} />
+      <DeltaRow label="⏱️ Activity" actual={scored.act_sec} target={config.target_act_sec} />
 
       <div className="mt-5 flex items-center justify-between border-l-4 border-signal bg-signal/[0.05] py-3 pr-4 pl-4">
         <span className="text-sm text-muted">คะแนนรวม</span>
@@ -43,7 +43,7 @@ export function ConfirmScreen({ scored, config, onEdit, onSave, saving }: Confir
 
       <div className="mt-6 flex gap-3">
         <button type="button" onClick={onEdit} className="flex-1 border border-line py-4 text-lg text-ink transition-colors hover:border-ink">
-          แก้ไข
+          ✏️ แก้ไข
         </button>
         <button
           type="button"
@@ -51,7 +51,7 @@ export function ConfirmScreen({ scored, config, onEdit, onSave, saving }: Confir
           disabled={saving}
           className="flex-1 bg-signal py-4 text-lg font-medium text-white transition-opacity active:opacity-80 disabled:opacity-50"
         >
-          บันทึก
+          💾 บันทึก
         </button>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { TeamCountSetup } from '../components/TeamCountSetup'
+import { WatchPhotoImport } from '../components/WatchPhotoImport'
+import { normalizeBib } from '../lib/bib'
 import { computeGpsFlags } from '../lib/gpsFlags'
 import { deleteTeam, getConfig, getResults, getTeams, saveTeams } from '../lib/store'
 import type { Config, Result, Team } from '../lib/types'
@@ -13,18 +15,14 @@ function seedTeams(count: number): Team[] {
   })
 }
 
-function normalizeBib(bib: string): string {
-  return String(Number(bib))
-}
-
 function StatusChip({ bib, results, flagged }: { bib: string; results: Record<string, Result>; flagged: Set<string> }) {
   if (flagged.has(bib)) {
     return <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-medium text-warn">⚠️</span>
   }
   if (results[bib]) {
-    return <span className="rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok">บันทึกแล้ว</span>
+    return <span className="rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok">✅ บันทึกแล้ว</span>
   }
-  return <span className="px-2.5 py-1 text-xs text-muted">รอ</span>
+  return <span className="px-2.5 py-1 text-xs text-muted">⏳ รอ</span>
 }
 
 export function TeamList() {
@@ -88,6 +86,7 @@ export function TeamList() {
             className="w-full border-b border-line pb-2 font-mono text-lg text-ink placeholder:text-muted focus:border-ink focus:outline-none"
           />
         </div>
+        <WatchPhotoImport teams={teams ?? []} />
         <ul>
           {visibleTeams.map((team) => (
             <li key={team.bib} className="flex items-center border-b border-line">
@@ -107,7 +106,7 @@ export function TeamList() {
                   confirmingBib === team.bib ? 'font-medium text-warn' : 'text-muted hover:text-warn'
                 }`}
               >
-                {confirmingBib === team.bib ? 'ยืนยันลบ' : 'ลบ'}
+                {confirmingBib === team.bib ? '⚠️ ยืนยันลบ' : '🗑️ ลบ'}
               </button>
             </li>
           ))}
