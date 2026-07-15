@@ -25,6 +25,12 @@
 - Modify: `src/lib/types.ts`
 - Modify: `src/lib/scoring.ts`
 - Modify: `src/components/ConfirmScreen.test.tsx:5-28` (existing test — type-only fix, see Step 3)
+- Modify: `src/lib/csv.ts:1-15` (existing consumer of `scoreOf` missed during planning — see Step 3b)
+- Modify: `src/lib/scoring.test.ts:1-23` (existing test — type-only fix, see Step 3c)
+
+**Correction made during execution:** the initial version of this task only listed `ConfirmScreen.test.tsx` as an existing consumer needing a fix. Running `npm run build` after the type change surfaced two more: `src/lib/csv.ts` (CSV export also calls `scoreOf`) and `src/lib/scoring.test.ts` (a whole test file for this module that was missed when the spec was written). Both are fixed in this task, same as `ConfirmScreen.test.tsx`, because nothing else in the plan owns them.
+
+**Expected remaining build errors after this task** (intentional — owned by later tasks, not bugs to fix here): `src/pages/Leaderboard.tsx:21` (fixed in Task 4) and `src/pages/BibEntry.tsx` at the prefill `formatSeconds` calls and the `pending`/`result` typing (fixed in Task 5). Do not touch those two files in this task.
 
 **Interfaces:**
 - Produces: `Result` (now `p1_sec?`, `p2_sec?`, `p3_sec?`, `act_sec?` all optional), `ScoreableResult = Result & Required<Pick<Result,'p1_sec'|'p2_sec'|'p3_sec'|'act_sec'>>`, `CompleteResult = ScoreableResult & Required<Pick<Result,'d1_km'|'d2_km'|'d3_km'>>`, `Scored = ScoreableResult & {d1,d2,d3,da,maxDev,total}` — all from `src/lib/types.ts`.
@@ -166,23 +172,105 @@ const result: ScoreableResult = {
 
 (the object literal itself — bib, name, p1_sec, p2_sec, p3_sec, act_sec, recorded_at — is unchanged).
 
-- [ ] **Step 4: Typecheck and run the affected test**
+- [ ] **Step 3b: Fix `src/lib/csv.ts` — CSV export also calls `scoreOf`**
+
+`resultsToCsv` scores every recorded result unconditionally; it needs to skip non-scoreable ones the same way it already skips bibs with no result at all (the existing `if (!scored) return ...blank row` branch already handles that — filtering first is the only change needed).
+
+Change:
+
+```ts
+import { rank, scoreOf } from './scoring'
+```
+
+to:
+
+```ts
+import { isScoreable, rank, scoreOf } from './scoring'
+```
+
+Change:
+
+```ts
+  const ranked = rank(Object.values(results).map((r) => scoreOf(r, config)))
+```
+
+to:
+
+```ts
+  const ranked = rank(Object.values(results).filter(isScoreable).map((r) => scoreOf(r, config)))
+```
+
+- [ ] **Step 3c: Fix `src/lib/scoring.test.ts` — its `makeResult` helper needs to return `ScoreableResult`**
+
+This existing test's `makeResult` builds a fully-populated fixture but declares it as `Result`, then passes it to `scoreOf`, `rank`. Change the import and the helper's return type:
+
+Change:
+
+```ts
+import type { Config, Result } from './types'
+```
+
+to:
+
+```ts
+import type { Config, Result, ScoreableResult } from './types'
+```
+
+Change:
+
+```ts
+function makeResult(overrides: Partial<Result> = {}): Result {
+  return {
+    bib: '001',
+    name: 'Test Team',
+    p1_sec: 503,
+    p2_sec: 675,
+    p3_sec: 645,
+    act_sec: 2805,
+    recorded_at: 1000,
+    ...overrides,
+  }
+}
+```
+
+to:
+
+```ts
+function makeResult(overrides: Partial<Result> = {}): ScoreableResult {
+  return {
+    bib: '001',
+    name: 'Test Team',
+    p1_sec: 503,
+    p2_sec: 675,
+    p3_sec: 645,
+    act_sec: 2805,
+    recorded_at: 1000,
+    ...overrides,
+  } as ScoreableResult
+}
+```
+
+(the `as ScoreableResult` is needed because spreading a `Partial<Result>` after concrete defaults makes TypeScript widen the merged object's pace/activity fields back to optional, even though every call site in this file supplies concrete numbers — a narrow, deliberate assertion, not a broad unsafe cast.)
+
+- [ ] **Step 4: Typecheck and run the affected tests**
 
 Run: `npm run build`
-Expected: no TypeScript errors.
+Expected: TypeScript errors **only** in `src/pages/Leaderboard.tsx:21` and `src/pages/BibEntry.tsx` (the prefill/pending lines called out above) — those are owned by Tasks 4 and 5. No errors anywhere else, and specifically none in `src/lib/csv.ts` or `src/lib/scoring.test.ts`.
 
-Run: `npx vitest run src/components/ConfirmScreen.test.tsx`
-Expected: PASS (same assertions as before — only the type annotation changed).
+Run: `npx vitest run src/components/ConfirmScreen.test.tsx src/lib/scoring.test.ts src/lib/csv.test.ts`
+Expected: PASS (same assertions as before — only type annotations/filters changed, no behavior change for any already-scoreable result).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/lib/types.ts src/lib/scoring.ts src/components/ConfirmScreen.test.tsx
+git add src/lib/types.ts src/lib/scoring.ts src/components/ConfirmScreen.test.tsx src/lib/csv.ts src/lib/scoring.test.ts
 git commit -m "Make Result pace/activity fields optional; split ScoreableResult/CompleteResult
 
 Allows partial saves for the upcoming bulk photo-import flow. Leaderboard
 ranking keeps using ScoreableResult (pace+activity only) so GPS distance
-still never affects ranking, per the existing scoring invariant."
+still never affects ranking, per the existing scoring invariant. Also
+fixes csv.ts and scoring.test.ts, two existing scoreOf consumers missed
+when this task was originally scoped."
 ```
 
 ---
