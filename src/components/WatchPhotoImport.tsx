@@ -12,6 +12,11 @@ type GroupOutcome =
   | { status: 'unresolved'; bibGuess: string | null; extraction: BatchExtraction }
   | { status: 'failed'; error: string }
 
+type ExtractOutcome =
+  | { status: 'ready'; team: Team; extraction: BatchExtraction }
+  | { status: 'unresolved'; bibGuess: string | null; extraction: BatchExtraction }
+  | { status: 'failed'; error: string }
+
 function buildResultFromExtraction(team: Team, extraction: BatchExtraction, existing?: Result): Result {
   const laps = extraction.laps
   return {
@@ -41,30 +46,60 @@ export function WatchPhotoImport({ teams, onImported }: { teams: Team[]; onImpor
     setBibInputs({})
     setResolveErrors({})
 
-    const groups = groupPhotosByTime(files)
+    const settled: GroupOutcome[] = []
 
-    const settled = await Promise.all(
-      groups.map(async (group): Promise<GroupOutcome> => {
-        try {
-          const extraction = await extractBatchFromPhotos(group)
-          const team = extraction.bib ? findTeamByBib(teams, extraction.bib) : undefined
-          if (!team) {
-            return { status: 'unresolved', bibGuess: extraction.bib, extraction }
+    try {
+      const groups = groupPhotosByTime(files)
+
+      const extracted = await Promise.all(
+        groups.map(async (group): Promise<ExtractOutcome> => {
+          if (group.length > 4) {
+            return {
+              status: 'failed',
+              error: `กลุ่มรูปนี้มี ${group.length} รูป (เกิน 4) — อาจรวมหลายทีมผิด ลองแยกส่งใหม่`,
+            }
           }
-          const existingResults = await getResults()
-          const result = buildResultFromExtraction(team, extraction, existingResults[team.bib])
-          await saveResult(result)
-          return { status: 'saved', bib: team.bib, complete: isComplete(result), missing: missingFieldLabels(result) }
-        } catch (e) {
-          return { status: 'failed', error: e instanceof Error ? e.message : 'อ่านรูปไม่สำเร็จ' }
-        }
-      }),
-    )
+          try {
+            const extraction = await extractBatchFromPhotos(group)
+            const team = extraction.bib ? findTeamByBib(teams, extraction.bib) : undefined
+            if (!team) {
+              return { status: 'unresolved', bibGuess: extraction.bib, extraction }
+            }
+            return { status: 'ready', team, extraction }
+          } catch (e) {
+            return { status: 'failed', error: e instanceof Error ? e.message : 'อ่านรูปไม่สำเร็จ' }
+          }
+        }),
+      )
 
-    await maybeAutoBackup(await getResults())
-    setOutcomes(settled)
-    setExtracting(false)
-    onImported()
+      // Saves run one at a time (not in parallel) so every group's read-merge-write
+      // against the results store is fully serialized — this is what actually
+      // prevents concurrent saves from clobbering each other, for any two groups,
+      // not just ones that happen to share a bib.
+      for (const outcome of extracted) {
+        if (outcome.status !== 'ready') {
+          settled.push(outcome)
+          continue
+        }
+        const existingResults = await getResults()
+        const result = buildResultFromExtraction(outcome.team, outcome.extraction, existingResults[outcome.team.bib])
+        await saveResult(result)
+        settled.push({
+          status: 'saved',
+          bib: outcome.team.bib,
+          complete: isComplete(result),
+          missing: missingFieldLabels(result),
+        })
+      }
+
+      await maybeAutoBackup(await getResults())
+    } finally {
+      // Runs even if something above threw, so staff always see whatever
+      // succeeded before the failure, and the spinner never gets stuck.
+      setOutcomes(settled)
+      setExtracting(false)
+      onImported()
+    }
   }
 
   async function handleResolveBib(index: number) {
@@ -120,6 +155,9 @@ export function WatchPhotoImport({ teams, onImported }: { teams: Team[]; onImpor
 
       {outcomes.length > 0 && (
         <ul className="mt-3 space-y-2">
+          {/* Using the array index `i` as both the React key and the bibInputs/resolveErrors
+              lookup key is only safe because `outcomes` is built once per batch and never
+              reordered or spliced afterward. */}
           {outcomes.map((outcome, i) => (
             <li key={i} className="text-sm">
               {outcome.status === 'saved' && outcome.complete && <p className="text-ok">✅ {outcome.bib} บันทึกครบ</p>}
