@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { TeamCountSetup } from '../components/TeamCountSetup'
 import { computeGpsFlags } from '../lib/gpsFlags'
-import { getConfig, getResults, getTeams, saveTeams } from '../lib/store'
+import { deleteTeam, getConfig, getResults, getTeams, saveTeams } from '../lib/store'
 import type { Config, Result, Team } from '../lib/types'
 
 function seedTeams(count: number): Team[] {
@@ -32,6 +32,7 @@ export function TeamList() {
   const [results, setResults] = useState<Record<string, Result>>({})
   const [config, setConfig] = useState<Config | null>(null)
   const [query, setQuery] = useState('')
+  const [confirmingBib, setConfirmingBib] = useState<string | null>(null)
 
   useEffect(() => {
     getTeams().then(setTeams)
@@ -43,6 +44,21 @@ export function TeamList() {
     const seeded = seedTeams(count)
     await saveTeams(seeded)
     setTeams(seeded)
+  }
+
+  function handleDeleteClick(bib: string) {
+    if (confirmingBib !== bib) {
+      setConfirmingBib(bib)
+      return
+    }
+    setConfirmingBib(null)
+    deleteTeam(bib)
+    setTeams((prev) => prev?.filter((t) => t.bib !== bib) ?? null)
+    setResults((prev) => {
+      const next = { ...prev }
+      delete next[bib]
+      return next
+    })
   }
 
   const flagged = useMemo(
@@ -74,12 +90,25 @@ export function TeamList() {
         </div>
         <ul>
           {visibleTeams.map((team) => (
-            <li key={team.bib} className="border-b border-line">
-              <Link to={`/bib/${team.bib}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-ink/[0.02]">
+            <li key={team.bib} className="flex items-center border-b border-line">
+              <Link
+                to={`/bib/${team.bib}`}
+                className="flex flex-1 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-ink/[0.02]"
+              >
                 <span className="font-mono text-base text-ink">{team.bib}</span>
                 <span className="flex-1 truncate text-base text-ink">{team.name}</span>
                 <StatusChip bib={team.bib} results={results} flagged={flagged} />
               </Link>
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(team.bib)}
+                onBlur={() => setConfirmingBib(null)}
+                className={`mr-4 shrink-0 px-2 py-1 text-xs transition-colors ${
+                  confirmingBib === team.bib ? 'font-medium text-warn' : 'text-muted hover:text-warn'
+                }`}
+              >
+                {confirmingBib === team.bib ? 'ยืนยันลบ' : 'ลบ'}
+              </button>
             </li>
           ))}
         </ul>

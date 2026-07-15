@@ -17,6 +17,17 @@ export async function getTeams(): Promise<Team[]> {
 
 export const saveTeams = (teams: Team[]) => set('teams', teams)
 
+export async function deleteTeam(bib: string): Promise<void> {
+  const teams = await getTeams()
+  await saveTeams(teams.filter((t) => t.bib !== bib))
+
+  const results = await getResults()
+  if (results[bib]) {
+    delete results[bib]
+    await set('results', results)
+  }
+}
+
 export async function getResults(): Promise<Record<string, Result>> {
   return (await get<Record<string, Result>>('results')) ?? {}
 }
