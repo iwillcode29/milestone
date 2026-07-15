@@ -1,4 +1,4 @@
-import { rank, scoreOf } from './scoring'
+import { isScoreable, rank, scoreOf } from './scoring'
 import type { Config, Result, Team } from './types'
 
 const HEADER = 'bib,name,p1_sec,p2_sec,p3_sec,act_sec,total_score,rank'
@@ -12,7 +12,7 @@ export function resultsToCsv(
   results: Record<string, Result>,
   config: Config,
 ): string {
-  const ranked = rank(Object.values(results).map((r) => scoreOf(r, config)))
+  const ranked = rank(Object.values(results).filter(isScoreable).map((r) => scoreOf(r, config)))
   const rankByBib = new Map(ranked.map((r, i) => [r.bib, i + 1]))
 
   const rows = teams.map((team) => {

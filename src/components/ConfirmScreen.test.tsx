@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ConfirmScreen } from './ConfirmScreen'
 import { scoreOf } from '../lib/scoring'
-import type { Config, Result } from '../lib/types'
+import type { Config, ScoreableResult } from '../lib/types'
 
 const config: Config = {
   target_p1_sec: 503,
@@ -15,7 +15,7 @@ const config: Config = {
   gps_tolerance_pct: 10,
 }
 
-const result: Result = {
+const result: ScoreableResult = {
   bib: '001',
   name: 'ขาแรงกาแล',
   p1_sec: 511,

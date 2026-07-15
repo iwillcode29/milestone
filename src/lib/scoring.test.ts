@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dev, rank, scoreOf } from './scoring'
-import type { Config, Result } from './types'
+import type { Config, Result, ScoreableResult } from './types'
 
 const config: Config = {
   target_p1_sec: 503,
@@ -12,7 +12,7 @@ const config: Config = {
   gps_tolerance_pct: 10,
 }
 
-function makeResult(overrides: Partial<Result> = {}): Result {
+function makeResult(overrides: Partial<Result> = {}): ScoreableResult {
   return {
     bib: '001',
     name: 'Test Team',
@@ -22,7 +22,7 @@ function makeResult(overrides: Partial<Result> = {}): Result {
     act_sec: 2805,
     recorded_at: 1000,
     ...overrides,
-  }
+  } as ScoreableResult
 }
 
 describe('dev', () => {
