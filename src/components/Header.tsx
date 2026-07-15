@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import { EXPORT_WARN_THRESHOLD, getBackupState, recordExport, unexportedCount } from '../lib/backup'
 import { resultsToCsv } from '../lib/csv'
 import { triggerDownload } from '../lib/download'
@@ -35,6 +36,23 @@ export function Header({ title }: { title: string }) {
           Export CSV
         </button>
       </header>
+      <nav className="flex gap-4 border-b border-muted px-4 py-2 text-sm">
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'font-semibold text-signal' : 'text-muted')}>
+          รายชื่อทีม
+        </NavLink>
+        <NavLink
+          to="/leaderboard"
+          className={({ isActive }) => (isActive ? 'font-semibold text-signal' : 'text-muted')}
+        >
+          อันดับ
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => (isActive ? 'font-semibold text-signal' : 'text-muted')}
+        >
+          ตั้งค่า
+        </NavLink>
+      </nav>
       {unexported > EXPORT_WARN_THRESHOLD && (
         <div role="alert" className="bg-warn/10 px-4 py-2 text-sm text-warn">
           ยังไม่ได้สำรอง {unexported} รายการ

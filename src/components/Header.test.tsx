@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { clear } from 'idb-keyval'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Header } from './Header'
 import * as store from '../lib/store'
@@ -24,6 +25,14 @@ function makeResults(count: number): Record<string, Result> {
   return results
 }
 
+function renderHeader(title = 'รายชื่อทีม') {
+  return render(
+    <MemoryRouter>
+      <Header title={title} />
+    </MemoryRouter>,
+  )
+}
+
 describe('Header', () => {
   beforeEach(async () => {
     await clear()
@@ -42,15 +51,22 @@ describe('Header', () => {
   })
 
   it('shows the given title', () => {
-    render(<Header title="รายชื่อทีม" />)
-    expect(screen.getByText('รายชื่อทีม')).toBeInTheDocument()
+    renderHeader('ตั้งค่า')
+    expect(screen.getByRole('heading', { name: 'ตั้งค่า' })).toBeInTheDocument()
+  })
+
+  it('links to the team list, leaderboard, and settings', () => {
+    renderHeader()
+    expect(screen.getByRole('link', { name: 'รายชื่อทีม' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'อันดับ' })).toHaveAttribute('href', '/leaderboard')
+    expect(screen.getByRole('link', { name: 'ตั้งค่า' })).toHaveAttribute('href', '/settings')
   })
 
   it('exports a CSV built from the current store state when clicked', async () => {
     const triggerDownload = vi.spyOn(download, 'triggerDownload').mockImplementation(() => {})
     const user = userEvent.setup()
 
-    render(<Header title="รายชื่อทีม" />)
+    renderHeader()
     await user.click(screen.getByRole('button', { name: /export csv/i }))
 
     expect(triggerDownload).toHaveBeenCalledOnce()
@@ -63,7 +79,7 @@ describe('Header', () => {
   it('shows a warning banner once more than 10 results are unexported', async () => {
     vi.spyOn(store, 'getResults').mockResolvedValue(makeResults(11))
 
-    render(<Header title="รายชื่อทีม" />)
+    renderHeader()
 
     expect(await screen.findByText(/ยังไม่ได้สำรอง 11 รายการ/)).toBeInTheDocument()
   })
@@ -73,7 +89,7 @@ describe('Header', () => {
     vi.spyOn(download, 'triggerDownload').mockImplementation(() => {})
     const user = userEvent.setup()
 
-    render(<Header title="รายชื่อทีม" />)
+    renderHeader()
     await screen.findByText(/ยังไม่ได้สำรอง 11 รายการ/)
 
     await user.click(screen.getByRole('button', { name: /export csv/i }))
