@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BibEntry } from './BibEntry'
+import * as backup from '../lib/backup'
 import * as store from '../lib/store'
 import type { Config } from '../lib/types'
 
@@ -115,5 +116,27 @@ describe('BibEntry', () => {
 
     expect(saveResult).toHaveBeenCalledWith(expect.objectContaining({ bib: '001', p1_sec: 8 * 60 + 23 }))
     expect(await screen.findByText('Home')).toBeInTheDocument()
+  })
+
+  it('runs the auto-backup check after saving', async () => {
+    const user = userEvent.setup()
+    const maybeAutoBackup = vi.spyOn(backup, 'maybeAutoBackup').mockResolvedValue(undefined)
+    renderBibEntry()
+    await screen.findByText('001 ขาแรงกาแล')
+
+    await user.click(screen.getByTestId('field-p1'))
+    await typeDigits(user, '823')
+    await user.click(screen.getByTestId('field-p2'))
+    await typeDigits(user, '1115')
+    await user.click(screen.getByTestId('field-p3'))
+    await typeDigits(user, '1045')
+    await user.click(screen.getByTestId('field-act'))
+    await typeDigits(user, '4645')
+
+    await user.click(screen.getByRole('button', { name: 'ตรวจทาน' }))
+    await user.click(await screen.findByRole('button', { name: 'บันทึก' }))
+
+    await screen.findByText('Home')
+    expect(maybeAutoBackup).toHaveBeenCalledOnce()
   })
 })

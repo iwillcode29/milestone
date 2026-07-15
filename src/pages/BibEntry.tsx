@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ConfirmScreen } from '../components/ConfirmScreen'
 import { Header } from '../components/Header'
 import { Numpad, formatDigits, toSeconds } from '../components/Numpad'
+import { maybeAutoBackup } from '../lib/backup'
 import { formatDistance, toDistanceKm } from '../lib/distance'
 import { scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams, saveResult } from '../lib/store'
@@ -136,6 +137,7 @@ export function BibEntry() {
     if (!pending) return
     setSaving(true)
     await saveResult(pending)
+    await maybeAutoBackup(await getResults())
     navigate('/')
   }
 
