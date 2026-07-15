@@ -7,7 +7,7 @@ import { extractReadingsFromPhoto, type Reading } from '../lib/extract'
 import { scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams, saveResult } from '../lib/store'
 import { formatSeconds, maskMmSs, parseMmSs } from '../lib/time'
-import type { Config, Result, Team } from '../lib/types'
+import type { Config, ScoreableResult, Team } from '../lib/types'
 import {
   isActivityInconsistentWithPaces,
   isActivityOutOfRange,
@@ -48,7 +48,7 @@ export function BibEntry() {
   const [step, setStep] = useState<'entry' | 'confirm'>('entry')
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
-  const [pending, setPending] = useState<Result | null>(null)
+  const [pending, setPending] = useState<ScoreableResult | null>(null)
   const [saving, setSaving] = useState(false)
   const [focusedField, setFocusedField] = useState<keyof FieldsState | null>(null)
   const [readings, setReadings] = useState<Reading[] | null>(null)
@@ -64,12 +64,12 @@ export function BibEntry() {
         setRecordedAt(r.recorded_at)
         setFields({
           d1: r.d1_km != null ? String(r.d1_km) : '',
-          p1: formatSeconds(r.p1_sec),
+          p1: r.p1_sec != null ? formatSeconds(r.p1_sec) : '',
           d2: r.d2_km != null ? String(r.d2_km) : '',
-          p2: formatSeconds(r.p2_sec),
+          p2: r.p2_sec != null ? formatSeconds(r.p2_sec) : '',
           d3: r.d3_km != null ? String(r.d3_km) : '',
-          p3: formatSeconds(r.p3_sec),
-          act: formatSeconds(r.act_sec),
+          p3: r.p3_sec != null ? formatSeconds(r.p3_sec) : '',
+          act: r.act_sec != null ? formatSeconds(r.act_sec) : '',
         })
         return
       }
@@ -133,7 +133,7 @@ export function BibEntry() {
     }
     setError(null)
 
-    const result: Result = {
+    const result: ScoreableResult = {
       bib,
       name: team?.name ?? '',
       p1_sec,
