@@ -23,11 +23,16 @@ In the field, staff want to select photos for **many teams at once** (end-of-leg
 
 `src/lib/types.ts`: `Result.p1_sec`, `p2_sec`, `p3_sec`, `act_sec` become optional (`number | undefined`), matching `d1_km..d3_km` which are already optional.
 
-Add `isComplete(result: Result): boolean` to `src/lib/scoring.ts` — true iff all seven of `p1_sec, p2_sec, p3_sec, act_sec, d1_km, d2_km, d3_km` are present (not `undefined`).
+Two tiers, not one — this was corrected after discovering it would otherwise regress the existing leaderboard (see below):
 
-`scoreOf`/`rank` are only ever called with complete results going forward (see Leaderboard section) — they are not changed to tolerate `undefined` internally.
+- `ScoreableResult = Result & Required<Pick<Result, 'p1_sec' | 'p2_sec' | 'p3_sec' | 'act_sec'>>` — enough to compute a score. `scoreOf` takes this type, unchanged from today's behavior (GPS distance was never part of the scoring math).
+- `CompleteResult = ScoreableResult & Required<Pick<Result, 'd1_km' | 'd2_km' | 'd3_km'>>` — scoreable *and* has all three GPS distances.
 
-**Side effect, confirmed with user:** completeness now includes GPS distance for every result regardless of entry path. A manually-typed entry that skips a distance field will show ⚠️ instead of ✅ until distance is filled in too. This is a deliberate, accepted change to existing behavior, not scoped only to bulk-imported records — there is no per-record "source" flag, and none is being added.
+`isScoreable(r): r is ScoreableResult` and `isComplete(r): r is CompleteResult` (type guards) plus `missingFieldLabels(r): string[]` (Thai labels for whichever of the 7 fields are absent) live in `src/lib/scoring.ts`.
+
+**Leaderboard ranking uses `isScoreable`, not `isComplete`** — a manually-entered result that never got a GPS distance (already common today, since distance was always optional) keeps ranking normally, exactly as it does now. `isComplete` is used only for the TeamList ⚠️ chip — it nudges staff to add the missing distance without pulling the team out of the ranking. This preserves the existing invariant in `CLAUDE.md`: "GPS distances... used only for flagging, not scoring."
+
+**Side effect, confirmed with user:** the TeamList status chip now shows ⚠️ instead of ✅ for any result missing a distance, regardless of entry path (manual or bulk-import) — there is no per-record "source" flag, and none is being added. This is deliberate and accepted; it does not affect Leaderboard ranking (see above).
 
 ## Photo grouping (client-side, before any AI call)
 
@@ -69,10 +74,10 @@ Tapping a team row still goes to `/bib/:bib` as today. `BibEntry.tsx` needs to t
 
 ## Leaderboard
 
-`Leaderboard.tsx` splits results into complete and incomplete:
+`Leaderboard.tsx` splits results by `isScoreable` (not `isComplete`):
 
-- Complete results: `scoreOf` + `rank` exactly as today, medals/rank numbers as usual.
-- Incomplete results: rendered below the ranked list, no rank/medal, with the bib/name and a note of which fields are missing — visible so staff can see what still needs finishing without it polluting the ranking.
+- Scoreable results: `scoreOf` + `rank` exactly as today, medals/rank numbers as usual — unaffected by whether GPS distance is present.
+- Non-scoreable results (missing pace or activity — realistically only from a bulk-import the model couldn't fully read): rendered below the ranked list, no rank/medal, with the bib/name and a note of which of the 7 fields are missing (via `missingFieldLabels`) — visible so staff can see what still needs finishing without it polluting the ranking.
 
 ## Error handling / edge cases
 
