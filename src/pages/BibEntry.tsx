@@ -245,25 +245,33 @@ export function BibEntry() {
           </div>
         </div>
 
-        <div className="mt-2 px-4">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted transition-colors hover:text-ink">
-            <span>📷 อ่านจากรูป</span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                e.target.value = ''
-                if (file) handlePhotoSelect(file)
-              }}
-            />
-          </label>
-          {extracting && <p className="mt-2 text-sm text-muted">กำลังอ่านรูป...</p>}
-          {extractError && <p className="mt-2 text-sm text-warn">{extractError}</p>}
+        <div className="mx-4 mt-4 border border-line p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-ink">อ่านจากรูป</span>
+            <label className="cursor-pointer text-sm text-signal transition-opacity hover:opacity-70">
+              📷 เลือกรูป
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) handlePhotoSelect(file)
+                }}
+              />
+            </label>
+          </div>
+
+          {extracting && <p className="mt-3 text-sm text-muted">กำลังอ่านรูป...</p>}
+
+          {extractError && (
+            <p className="mt-3 border-l-4 border-warn bg-warn/[0.06] px-3 py-2 text-sm text-warn">{extractError}</p>
+          )}
+
           {readings && readings.length > 0 && (
-            <div className="mt-2">
-              <p className="mb-2 text-xs text-muted">แตะช่องที่จะกรอกก่อน แล้วกดค่าด้านล่างเพื่อใส่</p>
+            <div className="mt-3">
+              <p className="mb-2 text-xs text-muted">แตะช่องที่จะกรอก แล้วกดค่าด้านล่างเพื่อใส่</p>
               <div className="flex flex-wrap gap-2">
                 {readings.map((r, i) => (
                   <button

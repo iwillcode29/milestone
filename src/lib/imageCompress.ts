@@ -1,15 +1,34 @@
+function isHeic(file: File): boolean {
+  const type = file.type.toLowerCase()
+  if (type === 'image/heic' || type === 'image/heif') return true
+  return /\.hei[cf]$/i.test(file.name)
+}
+
+async function toDecodableBlob(file: File): Promise<Blob> {
+  if (!isHeic(file)) return file
+  const heic2any = (await import('heic2any')).default
+  const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.8 })
+  return Array.isArray(converted) ? converted[0] : converted
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () =>
-      reject(new Error('เปิดไฟล์รูปนี้ไม่ได้ (มักเป็นไฟล์ HEIC) ลองถ่ายรูปใหม่ผ่านปุ่มนี้ หรือเลือกไฟล์ JPEG/PNG แทน'))
+    img.onerror = () => reject(new Error('เปิดไฟล์รูปนี้ไม่ได้ ลองถ่ายรูปใหม่หรือเลือกไฟล์ JPEG/PNG แทน'))
     img.src = src
   })
 }
 
 export async function compressImageToDataUrl(file: File, maxDim = 1280, quality = 0.7): Promise<string> {
-  const objectUrl = URL.createObjectURL(file)
+  let blob: Blob
+  try {
+    blob = await toDecodableBlob(file)
+  } catch {
+    throw new Error('แปลงไฟล์ HEIC ไม่สำเร็จ ลองถ่ายรูปใหม่หรือเลือกไฟล์ JPEG/PNG แทน')
+  }
+
+  const objectUrl = URL.createObjectURL(blob)
   try {
     const img = await loadImage(objectUrl)
     const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight))

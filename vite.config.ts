@@ -11,6 +11,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['fonts/**/*'],
+      workbox: {
+        // heic2any (HEIC->JPEG for the photo-assist feature) is huge and only
+        // needed when that feature is used, which already requires network
+        // access — don't bloat the offline precache with it.
+        globIgnores: ['**/heic2any-*.js'],
+      },
       manifest: {
         name: 'mileSTONES Run Scoring',
         short_name: 'mileSTONES',
