@@ -11,18 +11,8 @@ const DEFAULT_CONFIG: Config = {
   gps_tolerance_pct: 10,
 }
 
-const seedTeams = (): Team[] =>
-  Array.from({ length: 25 }, (_, i) => {
-    const bib = String(i + 1).padStart(3, '0')
-    return { bib, name: `ทีม ${bib}` }
-  })
-
 export async function getTeams(): Promise<Team[]> {
-  const teams = await get<Team[]>('teams')
-  if (teams) return teams
-  const seeded = seedTeams()
-  await set('teams', seeded)
-  return seeded
+  return (await get<Team[]>('teams')) ?? []
 }
 
 export const saveTeams = (teams: Team[]) => set('teams', teams)

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
+import { TeamCountSetup } from '../components/TeamCountSetup'
 import { computeGpsFlags } from '../lib/gpsFlags'
-import { getConfig, getResults, getTeams } from '../lib/store'
+import { getConfig, getResults, getTeams, saveTeams } from '../lib/store'
 import type { Config, Result, Team } from '../lib/types'
+
+function seedTeams(count: number): Team[] {
+  return Array.from({ length: count }, (_, i) => {
+    const bib = String(i + 1).padStart(3, '0')
+    return { bib, name: `ทีม ${bib}` }
+  })
+}
 
 function normalizeBib(bib: string): string {
   return String(Number(bib))
@@ -15,7 +23,7 @@ function statusOf(bib: string, results: Record<string, Result>, flagged: Set<str
 }
 
 export function TeamList() {
-  const [teams, setTeams] = useState<Team[]>([])
+  const [teams, setTeams] = useState<Team[] | null>(null)
   const [results, setResults] = useState<Record<string, Result>>({})
   const [config, setConfig] = useState<Config | null>(null)
   const [query, setQuery] = useState('')
@@ -26,12 +34,19 @@ export function TeamList() {
     getConfig().then(setConfig)
   }, [])
 
+  async function handleSetupSubmit(count: number) {
+    const seeded = seedTeams(count)
+    await saveTeams(seeded)
+    setTeams(seeded)
+  }
+
   const flagged = useMemo(
     () => (config ? computeGpsFlags(Object.values(results), config.gps_tolerance_pct) : new Set<string>()),
     [results, config],
   )
 
   const visibleTeams = useMemo(() => {
+    if (!teams) return []
     if (!query.trim()) return teams
     return teams.filter((team) => normalizeBib(team.bib).startsWith(query.trim()))
   }, [teams, query])
@@ -63,6 +78,7 @@ export function TeamList() {
           </li>
         ))}
       </ul>
+      {teams?.length === 0 && <TeamCountSetup onSubmit={handleSetupSubmit} />}
     </div>
   )
 }

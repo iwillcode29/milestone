@@ -31,16 +31,13 @@ describe('saveConfig', () => {
 })
 
 describe('getTeams', () => {
-  it('seeds 25 zero-padded placeholder teams on first call', async () => {
-    const teams = await getTeams()
-    expect(teams).toHaveLength(25)
-    expect(teams[0]).toEqual({ bib: '001', name: expect.any(String) })
-    expect(teams[24].bib).toBe('025')
+  it('is an empty list on first call, since team count is set up per event', async () => {
+    expect(await getTeams()).toEqual([])
   })
 })
 
 describe('saveTeams', () => {
-  it('overwrites the team list, and getTeams no longer re-seeds', async () => {
+  it('persists the team list so a later getTeams sees it', async () => {
     await saveTeams([{ bib: '001', name: 'ขาแรงกาแล' }])
 
     const teams = await getTeams()
