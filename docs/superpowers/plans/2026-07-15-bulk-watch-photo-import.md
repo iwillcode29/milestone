@@ -885,6 +885,10 @@ indicators added in earlier tasks."
 
 ---
 
+## Post-ship note (final whole-branch review)
+
+The shipped `handleFiles` diverges from this task's Step 1 snippet in one load-bearing way, found during the final whole-branch review: `saveResult` calls must run in a plain sequential `for` loop **after** the parallel extraction phase, not inside the same `Promise.all` with a per-group `getResults()`. `saveResult` is a non-atomic get→mutate→set on one IndexedDB key — running it concurrently across groups (even the "re-fetch existingResults per group" shape this task originally specified) is a lost-update race for any two groups, not just same-bib ones. The final shape: `Promise.all` covers only the read-only AI-extraction calls; all saves happen one at a time afterward. See commits `7783344` and `8aace3e` for the two-round fix history.
+
 ## Self-review notes
 
 - **Spec coverage:** Data model (Task 1), photo grouping (Task 2), TeamList chip (Task 3), Leaderboard split (Task 4), BibEntry tolerance (Task 5), WatchPhotoImport auto-save + summary UI (Task 6) — all spec sections have a task. The end-of-batch summary UI and per-group bib resolution are both in Task 6, matching the spec's "End-of-batch summary UI" section.
