@@ -41,6 +41,7 @@ export function TeamList() {
       <Header title="รายชื่อทีม" />
       <input
         role="searchbox"
+        name="bib_search"
         type="text"
         inputMode="numeric"
         placeholder="ค้นหา bib"

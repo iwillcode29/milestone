@@ -57,6 +57,7 @@ export function Settings() {
               {label}
               <input
                 aria-label={label}
+                name={key}
                 type="number"
                 step="any"
                 value={config[key]}
@@ -73,6 +74,7 @@ export function Settings() {
           นำเข้าทีมจาก CSV
           <input
             aria-label="นำเข้าทีมจาก CSV"
+            name="teams_csv"
             type="file"
             accept=".csv,text/csv"
             onChange={(e) => {
@@ -89,6 +91,7 @@ export function Settings() {
           {`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}
           <input
             aria-label={`พิมพ์ "${CONFIRM_WORD}" เพื่อยืนยัน`}
+            name="wipe_confirm"
             type="text"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
