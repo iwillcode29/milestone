@@ -57,6 +57,9 @@ describe('TeamList', () => {
         p2_sec: 698,
         p3_sec: 643,
         act_sec: 2847,
+        d1_km: 1.9,
+        d2_km: 0.5,
+        d3_km: 2.4,
         recorded_at: 1000,
       },
     })

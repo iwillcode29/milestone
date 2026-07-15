@@ -4,6 +4,7 @@ import { Header } from '../components/Header'
 import { TeamCountSetup } from '../components/TeamCountSetup'
 import { WatchPhotoImport } from '../components/WatchPhotoImport'
 import { normalizeBib } from '../lib/bib'
+import { isComplete } from '../lib/scoring'
 import { computeGpsFlags } from '../lib/gpsFlags'
 import { deleteTeam, getConfig, getResults, getTeams, saveTeams } from '../lib/store'
 import type { Config, Result, Team } from '../lib/types'
@@ -16,10 +17,14 @@ function seedTeams(count: number): Team[] {
 }
 
 function StatusChip({ bib, results, flagged }: { bib: string; results: Record<string, Result>; flagged: Set<string> }) {
-  if (flagged.has(bib)) {
-    return <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-medium text-warn">⚠️</span>
+  const result = results[bib]
+  if (result && !isComplete(result)) {
+    return <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-medium text-warn">⚠️ ข้อมูลไม่ครบ</span>
   }
-  if (results[bib]) {
+  if (flagged.has(bib)) {
+    return <span className="rounded-full bg-warn/10 px-2.5 py-1 text-xs font-medium text-warn">⚠️ GPS ไม่ตรง</span>
+  }
+  if (result) {
     return <span className="rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok">✅ บันทึกแล้ว</span>
   }
   return <span className="px-2.5 py-1 text-xs text-muted">⏳ รอ</span>
