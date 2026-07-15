@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 export function formatDigits(digits: string): string {
   if (digits.length === 0) return '0:00'
   const secs = digits.slice(-2).padStart(2, '0')
@@ -34,6 +36,23 @@ export function Numpad({ value, onChange, onNext, maxDigits = 4 }: NumpadProps) 
     if (value.length >= maxDigits) return
     onChange(value + key)
   }
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      if (e.key >= '0' && e.key <= '9') {
+        press(e.key as (typeof KEYS)[number])
+      } else if (e.key === 'Backspace') {
+        press('⌫')
+      } else if (e.key === 'Enter') {
+        press('→')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  })
 
   return (
     <div className="grid grid-cols-3 gap-2">

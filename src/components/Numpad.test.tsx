@@ -62,4 +62,54 @@ describe('Numpad', () => {
 
     expect(onNext).toHaveBeenCalled()
   })
+
+  it('appends a digit typed on a physical keyboard', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Numpad value="8" onChange={onChange} />)
+
+    await user.keyboard('2')
+
+    expect(onChange).toHaveBeenCalledWith('82')
+  })
+
+  it('removes the last digit on a physical Backspace press', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Numpad value="82" onChange={onChange} />)
+
+    await user.keyboard('{Backspace}')
+
+    expect(onChange).toHaveBeenCalledWith('8')
+  })
+
+  it('calls onNext on a physical Enter press', async () => {
+    const onNext = vi.fn()
+    const user = userEvent.setup()
+    render(<Numpad value="823" onChange={vi.fn()} onNext={onNext} />)
+
+    await user.keyboard('{Enter}')
+
+    expect(onNext).toHaveBeenCalled()
+  })
+
+  it('ignores a typed digit once at the max length', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Numpad value="2500" onChange={onChange} maxDigits={4} />)
+
+    await user.keyboard('1')
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('ignores non-digit keys typed on a physical keyboard', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Numpad value="8" onChange={onChange} />)
+
+    await user.keyboard('a')
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })
