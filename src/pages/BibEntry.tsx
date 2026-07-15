@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ConfirmScreen } from '../components/ConfirmScreen'
 import { Header } from '../components/Header'
 import { maybeAutoBackup } from '../lib/backup'
+import { extractReadingsFromPhoto, type Reading } from '../lib/extract'
 import { scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams, saveResult } from '../lib/store'
 import { formatSeconds, maskMmSs, parseMmSs } from '../lib/time'
@@ -48,6 +49,10 @@ export function BibEntry() {
   const [warning, setWarning] = useState<string | null>(null)
   const [pending, setPending] = useState<Result | null>(null)
   const [saving, setSaving] = useState(false)
+  const [focusedField, setFocusedField] = useState<keyof FieldsState | null>(null)
+  const [readings, setReadings] = useState<Reading[] | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extractError, setExtractError] = useState<string | null>(null)
 
   useEffect(() => {
     getTeams().then((teams) => setTeam(teams.find((t) => t.bib === bib) ?? null))
@@ -70,6 +75,36 @@ export function BibEntry() {
 
   function setField(key: keyof FieldsState, value: string) {
     setFields((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function handlePhotoSelect(file: File) {
+    setExtracting(true)
+    setExtractError(null)
+    setReadings(null)
+    try {
+      const found = await extractReadingsFromPhoto(file)
+      if (found.length === 0) {
+        setExtractError('อ่านค่าจากรูปไม่ได้ ลองถ่ายใหม่ให้ชัดขึ้น')
+      } else {
+        setReadings(found)
+      }
+    } catch (e) {
+      setExtractError(e instanceof Error ? e.message : 'อ่านรูปไม่สำเร็จ')
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  function applyReading(reading: Reading) {
+    if (!focusedField) {
+      setExtractError('แตะช่องที่จะกรอกก่อน แล้วค่อยกดค่าที่ต้องการ')
+      return
+    }
+    if (reading.type === 'time') {
+      setField(focusedField, formatSeconds(reading.seconds))
+    } else {
+      setField(focusedField, String(reading.km))
+    }
   }
 
   function handleReview() {
@@ -151,27 +186,30 @@ export function BibEntry() {
       <Header title={`${bib} ${team?.name ?? ''}`} />
 
       <div className="mx-auto max-w-2xl">
-        <div className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 pt-4 text-xs tracking-[0.08em] text-muted uppercase">
+        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 pt-4 text-xs tracking-[0.08em] text-muted uppercase">
           <span />
-          <span className="text-center">ระยะ (กม.)</span>
-          <span className="text-center">เพซ</span>
+          <span className="min-w-0 text-center">ระยะ (กม.)</span>
+          <span className="min-w-0 text-center">เพซ</span>
         </div>
 
         {config &&
           segments(config).map((seg) => (
-            <div key={seg.paceKey} className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
-              <span className="text-sm text-muted">{seg.label}</span>
-              <input
-                aria-label={`ระยะ ${seg.label}`}
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                placeholder="—"
-                value={fields[seg.distKey]}
-                onChange={(e) => setField(seg.distKey, e.target.value)}
-                className="rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
-              />
-              <div>
+            <div key={seg.paceKey} className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2">
+              <span className="text-sm whitespace-nowrap text-muted">{seg.label}</span>
+              <div className="min-w-0">
+                <input
+                  aria-label={`ระยะ ${seg.label}`}
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="—"
+                  value={fields[seg.distKey]}
+                  onChange={(e) => setField(seg.distKey, e.target.value)}
+                  onFocus={() => setFocusedField(seg.distKey)}
+                  className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+                />
+              </div>
+              <div className="min-w-0">
                 <input
                   aria-label={`เพซ ${seg.label}`}
                   type="text"
@@ -179,17 +217,18 @@ export function BibEntry() {
                   placeholder="mm:ss"
                   value={fields[seg.paceKey]}
                   onChange={(e) => setField(seg.paceKey, maskMmSs(e.target.value))}
-                  className="w-full rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+                  onFocus={() => setFocusedField(seg.paceKey)}
+                  className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
                 />
                 <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(seg.target)}</p>
               </div>
             </div>
           ))}
 
-        <div className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
-          <span className="text-sm text-muted">Activity</span>
+        <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2 px-4 py-2">
+          <span className="text-sm whitespace-nowrap text-muted">Activity</span>
           <div />
-          <div>
+          <div className="min-w-0">
             <input
               aria-label="Activity Time"
               type="text"
@@ -197,12 +236,49 @@ export function BibEntry() {
               placeholder="mm:ss"
               value={fields.act}
               onChange={(e) => setField('act', maskMmSs(e.target.value))}
-              className="w-full rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+              onFocus={() => setFocusedField('act')}
+              className="w-full min-w-0 rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
             />
             {config && (
               <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(config.target_act_sec)}</p>
             )}
           </div>
+        </div>
+
+        <div className="mt-2 px-4">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted transition-colors hover:text-ink">
+            <span>📷 อ่านจากรูป</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) handlePhotoSelect(file)
+              }}
+            />
+          </label>
+          {extracting && <p className="mt-2 text-sm text-muted">กำลังอ่านรูป...</p>}
+          {extractError && <p className="mt-2 text-sm text-warn">{extractError}</p>}
+          {readings && readings.length > 0 && (
+            <div className="mt-2">
+              <p className="mb-2 text-xs text-muted">แตะช่องที่จะกรอกก่อน แล้วกดค่าด้านล่างเพื่อใส่</p>
+              <div className="flex flex-wrap gap-2">
+                {readings.map((r, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => applyReading(r)}
+                    className="rounded-full border border-line px-3 py-1.5 font-mono text-sm text-ink transition-colors hover:border-signal"
+                  >
+                    {r.type === 'time' ? formatSeconds(r.seconds) : `${r.km} km`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
