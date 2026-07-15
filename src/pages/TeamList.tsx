@@ -91,7 +91,7 @@ export function TeamList() {
             className="w-full border-b border-line pb-2 font-mono text-lg text-ink placeholder:text-muted focus:border-ink focus:outline-none"
           />
         </div>
-        <WatchPhotoImport teams={teams ?? []} />
+        <WatchPhotoImport teams={teams ?? []} onImported={() => getResults().then(setResults)} />
         <ul>
           {visibleTeams.map((team) => (
             <li key={team.bib} className="flex items-center border-b border-line">
