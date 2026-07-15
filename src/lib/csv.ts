@@ -17,17 +17,34 @@ export function resultsToCsv(
 
   const rows = teams.map((team) => {
     const scored = ranked.find((r) => r.bib === team.bib)
-    if (!scored) return `${team.bib},${csvField(team.name)},,,,,,`
-    const place = rankByBib.get(team.bib)
+    if (scored) {
+      const place = rankByBib.get(team.bib)
+      return [
+        team.bib,
+        csvField(team.name),
+        scored.p1_sec,
+        scored.p2_sec,
+        scored.p3_sec,
+        scored.act_sec,
+        scored.total,
+        place,
+      ].join(',')
+    }
+
+    // No score yet (no result at all, or one missing too much to rank) —
+    // still surface whatever pace/activity values were captured, so a
+    // partially-read bulk import isn't invisible in the one export staff
+    // actually rely on as a safety net.
+    const partial = results[team.bib]
     return [
       team.bib,
       csvField(team.name),
-      scored.p1_sec,
-      scored.p2_sec,
-      scored.p3_sec,
-      scored.act_sec,
-      scored.total,
-      place,
+      partial?.p1_sec ?? '',
+      partial?.p2_sec ?? '',
+      partial?.p3_sec ?? '',
+      partial?.act_sec ?? '',
+      '',
+      '',
     ].join(',')
   })
 
