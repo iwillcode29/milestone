@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ConfirmScreen } from '../components/ConfirmScreen'
 import { Header } from '../components/Header'
-import { Numpad, formatDigits, toSeconds } from '../components/Numpad'
 import { maybeAutoBackup } from '../lib/backup'
-import { formatDistance, toDistanceKm } from '../lib/distance'
 import { scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams, saveResult } from '../lib/store'
+import { formatSeconds, maskMmSs, parseMmSs } from '../lib/time'
 import type { Config, Result, Team } from '../lib/types'
 import {
   isActivityInconsistentWithPaces,
@@ -15,20 +14,25 @@ import {
   isPaceOutOfRange,
 } from '../lib/validate'
 
-type FieldKey = 'd1' | 'p1' | 'd2' | 'p2' | 'd3' | 'p3' | 'act'
-const FIELD_ORDER: FieldKey[] = ['d1', 'p1', 'd2', 'p2', 'd3', 'p3', 'act']
-const DISTANCE_FIELDS = new Set<FieldKey>(['d1', 'd2', 'd3'])
+type FieldsState = {
+  d1: string
+  p1: string
+  d2: string
+  p2: string
+  d3: string
+  p3: string
+  act: string
+}
 
-const secToDigits = (sec: number) => `${Math.floor(sec / 60)}${String(sec % 60).padStart(2, '0')}`
-const kmToDigits = (km: number) => String(Math.round(km * 100))
+const EMPTY_FIELDS: FieldsState = { d1: '', p1: '', d2: '', p2: '', d3: '', p3: '', act: '' }
 
-type Segment = { key: FieldKey; label: string; dKey: FieldKey; target: number }
+type Segment = { paceKey: 'p1' | 'p2' | 'p3'; distKey: 'd1' | 'd2' | 'd3'; label: string; target: number }
 
 function segments(config: Config): Segment[] {
   return [
-    { key: 'p1', label: '① Road', dKey: 'd1', target: config.target_p1_sec },
-    { key: 'p2', label: '② Trail', dKey: 'd2', target: config.target_p2_sec },
-    { key: 'p3', label: '③ Hilly', dKey: 'd3', target: config.target_p3_sec },
+    { paceKey: 'p1', distKey: 'd1', label: '① Road', target: config.target_p1_sec },
+    { paceKey: 'p2', distKey: 'd2', label: '② Trail', target: config.target_p2_sec },
+    { paceKey: 'p3', distKey: 'd3', label: '③ Hilly', target: config.target_p3_sec },
   ]
 }
 
@@ -38,16 +42,7 @@ export function BibEntry() {
   const [team, setTeam] = useState<Team | null>(null)
   const [config, setConfig] = useState<Config | null>(null)
   const [recordedAt, setRecordedAt] = useState<number | null>(null)
-  const [digits, setDigits] = useState<Record<FieldKey, string>>({
-    d1: '',
-    p1: '',
-    d2: '',
-    p2: '',
-    d3: '',
-    p3: '',
-    act: '',
-  })
-  const [active, setActive] = useState<FieldKey>('d1')
+  const [fields, setFields] = useState<FieldsState>(EMPTY_FIELDS)
   const [step, setStep] = useState<'entry' | 'confirm'>('entry')
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
@@ -61,39 +56,34 @@ export function BibEntry() {
       const r = results[bib]
       if (!r) return
       setRecordedAt(r.recorded_at)
-      setDigits({
-        d1: r.d1_km != null ? kmToDigits(r.d1_km) : '',
-        p1: secToDigits(r.p1_sec),
-        d2: r.d2_km != null ? kmToDigits(r.d2_km) : '',
-        p2: secToDigits(r.p2_sec),
-        d3: r.d3_km != null ? kmToDigits(r.d3_km) : '',
-        p3: secToDigits(r.p3_sec),
-        act: secToDigits(r.act_sec),
+      setFields({
+        d1: r.d1_km != null ? String(r.d1_km) : '',
+        p1: formatSeconds(r.p1_sec),
+        d2: r.d2_km != null ? String(r.d2_km) : '',
+        p2: formatSeconds(r.p2_sec),
+        d3: r.d3_km != null ? String(r.d3_km) : '',
+        p3: formatSeconds(r.p3_sec),
+        act: formatSeconds(r.act_sec),
       })
     })
   }, [bib])
 
-  function setActiveDigits(value: string) {
-    setDigits((prev) => ({ ...prev, [active]: value }))
-  }
-
-  function advanceField() {
-    const i = FIELD_ORDER.indexOf(active)
-    if (i < FIELD_ORDER.length - 1) setActive(FIELD_ORDER[i + 1])
+  function setField(key: keyof FieldsState, value: string) {
+    setFields((prev) => ({ ...prev, [key]: value }))
   }
 
   function handleReview() {
     if (!config) return
-    const p1_sec = toSeconds(digits.p1)
-    const p2_sec = toSeconds(digits.p2)
-    const p3_sec = toSeconds(digits.p3)
-    const act_sec = toSeconds(digits.act)
+    const p1_sec = parseMmSs(fields.p1)
+    const p2_sec = parseMmSs(fields.p2)
+    const p3_sec = parseMmSs(fields.p3)
+    const act_sec = parseMmSs(fields.act)
 
-    if (
-      isPaceOutOfRange(p1_sec) ||
-      isPaceOutOfRange(p2_sec) ||
-      isPaceOutOfRange(p3_sec)
-    ) {
+    if ([p1_sec, p2_sec, p3_sec, act_sec].some(Number.isNaN)) {
+      setError('รูปแบบเวลาไม่ถูกต้อง ใช้ mm:ss เช่น 8:23')
+      return
+    }
+    if (isPaceOutOfRange(p1_sec) || isPaceOutOfRange(p2_sec) || isPaceOutOfRange(p3_sec)) {
       setError('เพซต้องอยู่ระหว่าง 4:00-25:00 ต่อกม.')
       return
     }
@@ -110,9 +100,9 @@ export function BibEntry() {
       p2_sec,
       p3_sec,
       act_sec,
-      d1_km: toDistanceKm(digits.d1),
-      d2_km: toDistanceKm(digits.d2),
-      d3_km: toDistanceKm(digits.d3),
+      d1_km: fields.d1 ? Number(fields.d1) : undefined,
+      d2_km: fields.d2 ? Number(fields.d2) : undefined,
+      d3_km: fields.d3 ? Number(fields.d3) : undefined,
       recorded_at: recordedAt ?? Date.now(),
     }
     setPending(result)
@@ -169,30 +159,29 @@ export function BibEntry() {
 
         {config &&
           segments(config).map((seg) => (
-            <div key={seg.key} className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
+            <div key={seg.paceKey} className="grid grid-cols-[2.75rem_1fr_1fr] items-center gap-3 px-4 py-2">
               <span className="text-sm text-muted">{seg.label}</span>
-              <button
-                type="button"
-                data-testid={`field-${seg.dKey}`}
-                onClick={() => setActive(seg.dKey)}
-                className={`rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
-                  active === seg.dKey ? 'border-2 border-signal' : 'border-line'
-                }`}
-              >
-                {digits[seg.dKey] ? formatDistance(digits[seg.dKey]) : <span className="text-muted">—</span>}
-              </button>
+              <input
+                aria-label={`ระยะ ${seg.label}`}
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="—"
+                value={fields[seg.distKey]}
+                onChange={(e) => setField(seg.distKey, e.target.value)}
+                className="rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+              />
               <div>
-                <button
-                  type="button"
-                  data-testid={`field-${seg.key}`}
-                  onClick={() => setActive(seg.key)}
-                  className={`w-full rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
-                    active === seg.key ? 'border-2 border-signal' : 'border-line'
-                  }`}
-                >
-                  {formatDigits(digits[seg.key])}
-                </button>
-                <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatDigits(secToDigits(seg.target))}</p>
+                <input
+                  aria-label={`เพซ ${seg.label}`}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="mm:ss"
+                  value={fields[seg.paceKey]}
+                  onChange={(e) => setField(seg.paceKey, maskMmSs(e.target.value))}
+                  className="w-full rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+                />
+                <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(seg.target)}</p>
               </div>
             </div>
           ))}
@@ -201,20 +190,17 @@ export function BibEntry() {
           <span className="text-sm text-muted">Activity</span>
           <div />
           <div>
-            <button
-              type="button"
-              data-testid="field-act"
-              onClick={() => setActive('act')}
-              className={`w-full rounded-lg border px-2 py-3.5 text-center font-mono text-xl transition-colors ${
-                active === 'act' ? 'border-2 border-signal' : 'border-line'
-              }`}
-            >
-              {formatDigits(digits.act)}
-            </button>
+            <input
+              aria-label="Activity Time"
+              type="text"
+              inputMode="numeric"
+              placeholder="mm:ss"
+              value={fields.act}
+              onChange={(e) => setField('act', maskMmSs(e.target.value))}
+              className="w-full rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
+            />
             {config && (
-              <p className="mt-1 text-center font-mono text-xs text-muted">
-                เป้า {formatDigits(secToDigits(config.target_act_sec))}
-              </p>
+              <p className="mt-1 text-center font-mono text-xs text-muted">เป้า {formatSeconds(config.target_act_sec)}</p>
             )}
           </div>
         </div>
@@ -223,16 +209,7 @@ export function BibEntry() {
           <p className="mx-4 mt-3 border-l-4 border-warn bg-warn/[0.06] px-3 py-2 text-sm text-warn">{error}</p>
         )}
 
-        <div className="px-4 pt-6 pb-4">
-          <Numpad
-            value={digits[active]}
-            onChange={setActiveDigits}
-            onNext={advanceField}
-            maxDigits={DISTANCE_FIELDS.has(active) ? 3 : 4}
-          />
-        </div>
-
-        <div className="px-4 pb-6">
+        <div className="px-4 pt-6 pb-6">
           <button
             type="button"
             onClick={handleReview}
