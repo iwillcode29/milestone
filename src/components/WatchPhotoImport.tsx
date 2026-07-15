@@ -42,7 +42,6 @@ export function WatchPhotoImport({ teams, onImported }: { teams: Team[]; onImpor
     setResolveErrors({})
 
     const groups = groupPhotosByTime(files)
-    const existingResults = await getResults()
 
     const settled = await Promise.all(
       groups.map(async (group): Promise<GroupOutcome> => {
@@ -52,6 +51,7 @@ export function WatchPhotoImport({ teams, onImported }: { teams: Team[]; onImpor
           if (!team) {
             return { status: 'unresolved', bibGuess: extraction.bib, extraction }
           }
+          const existingResults = await getResults()
           const result = buildResultFromExtraction(team, extraction, existingResults[team.bib])
           await saveResult(result)
           return { status: 'saved', bib: team.bib, complete: isComplete(result), missing: missingFieldLabels(result) }
