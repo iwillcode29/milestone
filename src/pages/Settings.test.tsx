@@ -35,14 +35,14 @@ describe('Settings', () => {
 
   it('shows the current weight_act value', async () => {
     renderSettings()
-    expect(await screen.findByLabelText('weight_act')).toHaveValue(0.2)
+    expect(await screen.findByLabelText('น้ำหนักคะแนนเวลารวม')).toHaveValue(0.2)
   })
 
   it('saves a changed weight through the store', async () => {
     const saveConfig = vi.spyOn(store, 'saveConfig').mockResolvedValue(undefined)
     renderSettings()
 
-    const input = await screen.findByLabelText('weight_act')
+    const input = await screen.findByLabelText('น้ำหนักคะแนนเวลารวม')
     fireEvent.change(input, { target: { value: '0.5' } })
 
     expect(saveConfig).toHaveBeenLastCalledWith(expect.objectContaining({ weight_act: 0.5 }))
@@ -52,7 +52,7 @@ describe('Settings', () => {
     const saveTeams = vi.spyOn(store, 'saveTeams').mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderSettings()
-    await screen.findByLabelText('weight_act')
+    await screen.findByLabelText('น้ำหนักคะแนนเวลารวม')
 
     const file = new File(['bib,name\n001,ขาแรงกาแล\n'], 'teams.csv', { type: 'text/csv' })
     await user.upload(screen.getByLabelText('นำเข้าทีมจาก CSV'), file)
@@ -65,7 +65,7 @@ describe('Settings', () => {
     const wipeAllData = vi.spyOn(wipe, 'wipeAllData').mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderSettings()
-    await screen.findByLabelText('weight_act')
+    await screen.findByLabelText('น้ำหนักคะแนนเวลารวม')
 
     const wipeButton = screen.getByRole('button', { name: '🗑️ ล้างข้อมูล' })
     expect(wipeButton).toBeDisabled()

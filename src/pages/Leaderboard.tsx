@@ -3,11 +3,22 @@ import { Header } from '../components/Header'
 import { isScoreable, missingFieldLabels, rank, scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams } from '../lib/store'
 import { formatSeconds } from '../lib/time'
-import type { Config, Result, Team } from '../lib/types'
+import type { Config, Result, Scored, Team } from '../lib/types'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
+const SEGS = [
+  { label: 'Road', p: 'p1_sec', d: 'd1_km' },
+  { label: 'Trail', p: 'p2_sec', d: 'd2_km' },
+  { label: 'Hilly', p: 'p3_sec', d: 'd3_km' },
+] as const
+
+// Shared column template so the header legend and every row line up exactly.
+const GRID =
+  'grid grid-cols-[1.75rem_minmax(3.5rem,1fr)_repeat(3,3rem)_3.25rem_3.5rem] items-center gap-x-5 px-4'
+
 const km = (v: number | undefined) => (v != null ? v.toFixed(2) : '—')
+const kmClass = (v: number | undefined) => (v != null ? 'text-muted' : 'text-line')
 
 export function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -26,61 +37,88 @@ export function Leaderboard() {
   const unscoreableResults = allResults.filter((r) => !isScoreable(r))
   const ranked = config ? rank(scoreableResults.map((r) => scoreOf(r, config))) : []
 
+  if (allResults.length === 0) {
+    return (
+      <div>
+        <Header title="อันดับ" />
+        <div className="mx-auto max-w-2xl">
+          <p className="px-4 py-16 text-center text-sm text-muted">
+            ยังไม่มีทีมบันทึกผล — อันดับจะขึ้นเมื่อกรอกผลทีมแรก
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <Header title="อันดับ" />
-      <div className="mx-auto max-w-2xl">
-        {allResults.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-muted">ยังไม่มีทีมบันทึกผล — อันดับจะขึ้นเมื่อกรอกผลทีมแรก</p>
-        ) : (
-          <>
-            {ranked.length > 0 && (
+      <div className="mx-auto max-w-2xl overflow-x-auto">
+        <div className="min-w-[22rem]">
+          {ranked.length > 0 && (
+            <>
+              <div
+                className={`${GRID} border-b border-line py-2 text-[0.65rem] tracking-[0.08em] text-muted uppercase`}
+              >
+                <span />
+                <span>ทีม</span>
+                {SEGS.map((s) => (
+                  <span key={s.label} className="text-center">
+                    {s.label}
+                  </span>
+                ))}
+                <span className="text-right">act</span>
+                <span className="text-right">คะแนน</span>
+              </div>
               <ol>
                 {ranked.map((r, i) => (
-                  <li key={r.bib} role="listitem" className="border-b border-line px-4 py-3.5">
-                    <div className="flex items-center gap-4">
-                      <span className={`w-6 font-mono text-lg ${i === 0 ? 'font-semibold text-signal' : 'text-muted'}`}>
-                        {MEDALS[i] ?? i + 1}
-                      </span>
-                      <span className="font-mono text-base text-ink">{r.bib}</span>
-                      <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
-                      <span className="font-mono text-lg text-ink">{Math.round(r.total * 10) / 10}</span>
-                    </div>
-                    <dl className="mt-2 ml-10 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
-                      <dt className="text-muted">เพซ</dt>
-                      <dd className="font-mono text-ink">
-                        {formatSeconds(r.p1_sec)} / {formatSeconds(r.p2_sec)} / {formatSeconds(r.p3_sec)}
-                      </dd>
-                      <dt className="text-muted">ระยะ</dt>
-                      <dd className="font-mono text-ink">
-                        {km(r.d1_km)} / {km(r.d2_km)} / {km(r.d3_km)}
-                      </dd>
-                      <dt className="text-muted">activity</dt>
-                      <dd className="font-mono text-ink">{formatSeconds(r.act_sec)}</dd>
-                    </dl>
-                  </li>
+                  <Row key={r.bib} r={r} i={i} name={nameByBib.get(r.bib) ?? r.name} />
                 ))}
               </ol>
-            )}
-            {unscoreableResults.length > 0 && (
-              <ul>
-                {unscoreableResults.map((r) => (
-                  <li
-                    key={r.bib}
-                    role="listitem"
-                    className="flex items-center gap-4 border-b border-line px-4 py-3.5 opacity-70"
-                  >
-                    <span className="w-6 font-mono text-lg text-muted">⚠️</span>
-                    <span className="font-mono text-base text-ink">{r.bib}</span>
-                    <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
-                    <span className="text-xs text-warn">ขาด: {missingFieldLabels(r).join(', ')}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
+            </>
+          )}
+
+          {unscoreableResults.length > 0 && (
+            <ul className="border-t border-line">
+              {unscoreableResults.map((r) => (
+                <li key={r.bib} className={`${GRID} border-b border-line py-3`}>
+                  <span className="text-center text-base">⚠️</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
+                    <span className="font-mono text-xs text-muted">{r.bib}</span>
+                  </span>
+                  <span className="col-span-5 text-xs text-warn">ขาด: {missingFieldLabels(r).join(', ')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
+  )
+}
+
+function Row({ r, i, name }: { r: Scored; i: number; name: string }) {
+  const leader = i === 0
+  return (
+    <li className={`${GRID} border-b border-line py-3 ${leader ? 'bg-signal/5' : ''}`}>
+      <span className={`text-center font-mono text-base ${leader ? 'font-semibold text-signal' : 'text-muted'}`}>
+        {MEDALS[i] ?? i + 1}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-base text-ink">{name}</span>
+        <span className="font-mono text-xs text-muted">{r.bib}</span>
+      </span>
+      {SEGS.map((s) => (
+        <span key={s.label} className="text-center leading-tight">
+          <span className="block font-mono text-sm text-ink">{formatSeconds(r[s.p])}</span>
+          <span className={`block font-mono text-xs ${kmClass(r[s.d])}`}>{km(r[s.d])}</span>
+        </span>
+      ))}
+      <span className="text-right font-mono text-sm text-muted">{formatSeconds(r.act_sec)}</span>
+      <span className={`text-right font-mono text-lg ${leader ? 'font-semibold text-signal' : 'text-ink'}`}>
+        {Math.round(r.total * 10) / 10}
+      </span>
+    </li>
   )
 }

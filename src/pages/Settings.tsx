@@ -2,19 +2,22 @@ import { useEffect, useState } from 'react'
 import { Header } from '../components/Header'
 import { parseTeamsCsv } from '../lib/teamsCsv'
 import { getConfig, saveConfig, saveTeams } from '../lib/store'
+import { formatSeconds } from '../lib/time'
 import type { Config } from '../lib/types'
 import { wipeAllData } from '../lib/wipe'
 
 const CONFIRM_WORD = 'ลบทั้งหมด'
 
-const FIELDS: { key: keyof Config; label: string }[] = [
-  { key: 'target_p1_sec', label: 'target_p1_sec' },
-  { key: 'target_p2_sec', label: 'target_p2_sec' },
-  { key: 'target_p3_sec', label: 'target_p3_sec' },
-  { key: 'target_act_sec', label: 'target_act_sec' },
-  { key: 'weight_pace', label: 'weight_pace' },
-  { key: 'weight_act', label: 'weight_act' },
-  { key: 'gps_tolerance_pct', label: 'gps_tolerance_pct' },
+type FieldDef = { key: keyof Config; label: string; kind: 'time' | 'num' }
+
+const FIELDS: FieldDef[] = [
+  { key: 'target_p1_sec', label: 'เป้าเพซ Road', kind: 'time' },
+  { key: 'target_p2_sec', label: 'เป้าเพซ Trail', kind: 'time' },
+  { key: 'target_p3_sec', label: 'เป้าเพซ Hilly', kind: 'time' },
+  { key: 'target_act_sec', label: 'เป้าเวลารวม (Activity)', kind: 'time' },
+  { key: 'weight_pace', label: 'น้ำหนักคะแนนเพซ', kind: 'num' },
+  { key: 'weight_act', label: 'น้ำหนักคะแนนเวลารวม', kind: 'num' },
+  { key: 'gps_tolerance_pct', label: 'เผื่อคลาด GPS (%)', kind: 'num' },
 ]
 
 function SectionLabel({ children }: { children: string }) {
@@ -58,9 +61,9 @@ export function Settings() {
           <section>
             <SectionLabel>🎯 เป้าหมาย &amp; น้ำหนักคะแนน</SectionLabel>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              {FIELDS.map(({ key, label }) => (
+              {FIELDS.map(({ key, label, kind }) => (
                 <label key={key} className="flex flex-col gap-1">
-                  <span className="font-mono text-xs text-muted">{label}</span>
+                  <span className="text-sm text-ink">{label}</span>
                   <input
                     aria-label={label}
                     name={key}
@@ -70,6 +73,9 @@ export function Settings() {
                     onChange={(e) => updateField(key, e.target.valueAsNumber)}
                     className="border-b border-line py-1.5 font-mono text-ink focus:border-ink focus:outline-none"
                   />
+                  <span className="font-mono text-xs text-muted">
+                    {kind === 'time' ? `= ${formatSeconds(config[key])} นาที (${config[key]} วินาที)` : ' '}
+                  </span>
                 </label>
               ))}
             </div>
