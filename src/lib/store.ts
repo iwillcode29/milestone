@@ -38,6 +38,8 @@ export async function saveResult(result: Result): Promise<void> {
   await set('results', results)
 }
 
+export const saveResults = (results: Record<string, Result>) => set('results', results)
+
 export async function getConfig(): Promise<Config> {
   return (await get<Config>('config')) ?? DEFAULT_CONFIG
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Header } from '../components/Header'
 import { parseTeamsCsv } from '../lib/teamsCsv'
-import { getConfig, saveConfig, saveTeams } from '../lib/store'
+import { parseResultsCsv } from '../lib/resultsCsv'
+import { getConfig, saveConfig, saveResults, saveTeams } from '../lib/store'
 import { formatSeconds } from '../lib/time'
 import type { Config } from '../lib/types'
 import { wipeAllData } from '../lib/wipe'
@@ -27,6 +28,7 @@ function SectionLabel({ children }: { children: string }) {
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
+  const [resultsMessage, setResultsMessage] = useState<string | null>(null)
   const [confirmText, setConfirmText] = useState('')
 
   useEffect(() => {
@@ -45,6 +47,14 @@ export function Settings() {
     const teams = parseTeamsCsv(text)
     await saveTeams(teams)
     setImportMessage(`นำเข้า ${teams.length} ทีมแล้ว`)
+  }
+
+  async function handleResultsUpload(file: File) {
+    const text = await file.text()
+    const { teams, results } = parseResultsCsv(text)
+    await saveTeams(teams)
+    await saveResults(results)
+    setResultsMessage(`นำเข้า ${teams.length} ทีม, ${Object.keys(results).length} ผลแล้ว`)
   }
 
   async function handleWipe() {
@@ -96,6 +106,26 @@ export function Settings() {
             className="text-sm text-ink file:mr-3 file:border file:border-line file:bg-paper file:px-3 file:py-1.5 file:text-sm file:text-ink"
           />
           {importMessage && <p className="mt-2 text-sm text-ok">✅ {importMessage}</p>}
+        </section>
+
+        <section className="mt-8 border-t border-line pt-6">
+          <SectionLabel>📊 นำเข้าผล / กู้คืนจาก CSV</SectionLabel>
+          <p className="mb-3 text-sm text-muted">
+            รับไฟล์ที่ export ออกไป (bib,name,p1_sec,p2_sec,p3_sec,act_sec,…) และคอลัมน์ระยะ d1_km/d2_km/d3_km ถ้ามี —
+            เขียนทับทั้งทีมและผล
+          </p>
+          <input
+            aria-label="นำเข้าผลจาก CSV"
+            name="results_csv"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleResultsUpload(file)
+            }}
+            className="text-sm text-ink file:mr-3 file:border file:border-line file:bg-paper file:px-3 file:py-1.5 file:text-sm file:text-ink"
+          />
+          {resultsMessage && <p className="mt-2 text-sm text-ok">✅ {resultsMessage}</p>}
         </section>
 
         <section className="mt-8 border-t border-line pt-6">
