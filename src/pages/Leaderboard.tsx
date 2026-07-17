@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { Header } from '../components/Header'
 import { isScoreable, missingFieldLabels, rank, scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams } from '../lib/store'
+import { formatSeconds } from '../lib/time'
 import type { Config, Result, Team } from '../lib/types'
 
 const MEDALS = ['🥇', '🥈', '🥉']
+
+const km = (v: number | undefined) => (v != null ? v.toFixed(2) : '—')
 
 export function Leaderboard() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -34,13 +37,27 @@ export function Leaderboard() {
             {ranked.length > 0 && (
               <ol>
                 {ranked.map((r, i) => (
-                  <li key={r.bib} role="listitem" className="flex items-center gap-4 border-b border-line px-4 py-3.5">
-                    <span className={`w-6 font-mono text-lg ${i === 0 ? 'font-semibold text-signal' : 'text-muted'}`}>
-                      {MEDALS[i] ?? i + 1}
-                    </span>
-                    <span className="font-mono text-base text-ink">{r.bib}</span>
-                    <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
-                    <span className="font-mono text-lg text-ink">{Math.round(r.total * 10) / 10}</span>
+                  <li key={r.bib} role="listitem" className="border-b border-line px-4 py-3.5">
+                    <div className="flex items-center gap-4">
+                      <span className={`w-6 font-mono text-lg ${i === 0 ? 'font-semibold text-signal' : 'text-muted'}`}>
+                        {MEDALS[i] ?? i + 1}
+                      </span>
+                      <span className="font-mono text-base text-ink">{r.bib}</span>
+                      <span className="flex-1 truncate text-base text-ink">{nameByBib.get(r.bib) ?? r.name}</span>
+                      <span className="font-mono text-lg text-ink">{Math.round(r.total * 10) / 10}</span>
+                    </div>
+                    <dl className="mt-2 ml-10 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
+                      <dt className="text-muted">เพซ</dt>
+                      <dd className="font-mono text-ink">
+                        {formatSeconds(r.p1_sec)} / {formatSeconds(r.p2_sec)} / {formatSeconds(r.p3_sec)}
+                      </dd>
+                      <dt className="text-muted">ระยะ</dt>
+                      <dd className="font-mono text-ink">
+                        {km(r.d1_km)} / {km(r.d2_km)} / {km(r.d3_km)}
+                      </dd>
+                      <dt className="text-muted">activity</dt>
+                      <dd className="font-mono text-ink">{formatSeconds(r.act_sec)}</dd>
+                    </dl>
                   </li>
                 ))}
               </ol>
