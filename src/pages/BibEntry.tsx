@@ -6,7 +6,7 @@ import { maybeAutoBackup } from '../lib/backup'
 import { extractReadingsFromPhoto, type Reading } from '../lib/extract'
 import { scoreOf } from '../lib/scoring'
 import { getConfig, getResults, getTeams, saveResult } from '../lib/store'
-import { formatSeconds, maskMmSs, parseMmSs } from '../lib/time'
+import { formatSeconds, maskKm, maskMmSs, parseMmSs } from '../lib/time'
 import type { Config, ScoreableResult, Team } from '../lib/types'
 import {
   isActivityInconsistentWithPaces,
@@ -63,11 +63,11 @@ export function BibEntry() {
       if (r) {
         setRecordedAt(r.recorded_at)
         setFields({
-          d1: r.d1_km != null ? String(r.d1_km) : '',
+          d1: r.d1_km != null ? r.d1_km.toFixed(2) : '',
           p1: r.p1_sec != null ? formatSeconds(r.p1_sec) : '',
-          d2: r.d2_km != null ? String(r.d2_km) : '',
+          d2: r.d2_km != null ? r.d2_km.toFixed(2) : '',
           p2: r.p2_sec != null ? formatSeconds(r.p2_sec) : '',
-          d3: r.d3_km != null ? String(r.d3_km) : '',
+          d3: r.d3_km != null ? r.d3_km.toFixed(2) : '',
           p3: r.p3_sec != null ? formatSeconds(r.p3_sec) : '',
           act: r.act_sec != null ? formatSeconds(r.act_sec) : '',
         })
@@ -108,7 +108,7 @@ export function BibEntry() {
     if (reading.type === 'time') {
       setField(focusedField, formatSeconds(reading.seconds))
     } else {
-      setField(focusedField, String(reading.km))
+      setField(focusedField, reading.km.toFixed(2))
     }
   }
 
@@ -202,12 +202,11 @@ export function BibEntry() {
                 <span className="text-sm whitespace-nowrap text-muted">{seg.label}</span>
                 <input
                   aria-label={`ระยะ ${seg.label}`}
-                  type="number"
-                  step="0.01"
+                  type="text"
                   inputMode="decimal"
                   placeholder="—"
                   value={fields[seg.distKey]}
-                  onChange={(e) => setField(seg.distKey, e.target.value)}
+                  onChange={(e) => setField(seg.distKey, maskKm(e.target.value))}
                   onFocus={() => setFocusedField(seg.distKey)}
                   className="w-full min-w-0 self-start rounded-lg border border-line px-2 py-3.5 text-center font-mono text-xl text-ink focus:border-signal focus:outline-none"
                 />
